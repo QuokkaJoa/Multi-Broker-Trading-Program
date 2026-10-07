@@ -30,7 +30,7 @@
 - [x] 3. 토스 어댑터 조회 — `TossBroker`가 `Broker` contract 시험 통과: 계좌 목록(`AccountId`=`toss-`+끝 4자리, `accountSeq`는 어댑터 안에만), 보유(→ `Holding`), 예수금(buying-power KRW·USD → `Money` 둘)
 - [x] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
 - [x] 5. 오류를 알아보게 — 403 IP 차단, 401 키 틀림, 429 한도 초과를 각각 구분되는 예외로. 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인. 통합 잔고 `failedBrokers`에 이유 종류가 남는다
-- [ ] 6. dryrun 설정 + networkTest (REST) — `application-dryrun.properties`(토스 어댑터 켜기), `./gradlew networkTest` 작업(`@Tag("network")`만 실행). 시험 내용: 실서버 응답의 필드 모양이 녹화와 같은지 (값은 비교 안 함). 실서버 응답은 git 제외 폴더에 저장
+- [x] 6. dryrun 설정 + networkTest (REST) — `application-dryrun.properties`(토스 어댑터 켜기), `./gradlew networkTest` 작업(`@Tag("network")`만 실행). 시험 내용: 실서버 응답의 필드 모양이 녹화와 같은지 (값은 비교 안 함). 실서버 응답은 git 제외 폴더에 저장
 - [ ] 7. 첫 화면 (스냅샷) — Thymeleaf + htmx (decisions/004). 원화 총합, 계좌별 예수금·평가금, 보유 종목 표(종목·수량·현재가·평가금·통화), 환율과 조회 시각, 실패한 증권사 표시. 30초마다 REST로 다시 조회(htmx). htmx는 파일로 넣는다 (외부 CDN 안 씀). fake로 띄워 확인
 - [ ] 8. 체결가 받기 — `brokers`에 `PriceStream` 약속 새로 (`Broker`는 그대로). 토스 구현은 JDK 내장 `java.net.http.WebSocket` (새 의존성 없음): 보유 종목 구독, 60초 PING, 끊기면 점점 늦게 재연결, 보유가 바뀌면 구독 배열 다시 보내기. fake 구현은 가짜 체결을 몇 초마다 낸다. 시험: 녹화 프레임(명세 예시)으로 ack·체결·rejected·끊김. networkTest에 "보유 종목 하나 구독 → ack와 체결 프레임 모양 확인" 추가
 - [ ] 9. 실시간 평가금 — service가 스냅샷과 체결가를 합친다: 체결가가 온 종목만 `수량 × 체결가`(통화 단위로 HALF_UP 반올림), 나머지는 스냅샷 값. 다음 스냅샷이 오면 스냅샷 값으로 맞춘다. 브라우저로는 SSE(Spring `SseEmitter`) + htmx sse 확장(파일로 넣음). 화면에 "실시간 추정 / 스냅샷 시각" 표시. fake로 띄워 숫자가 움직이는 것 확인
@@ -58,7 +58,7 @@
 - [x] 같은 화면 아래 "허용 IP 관리"에 집 공인 IP 등록. IP가 바뀌면 다시 등록
 - [x] 프로젝트 폴더에 `.env` 만들기 (Claude는 못 엶): `toss.client-id=...`, `toss.client-secret=...` 두 줄. 그 뒤 `chmod 600 .env`
 - [ ] 커밋 전 `git status`에 `.env`가 안 보이는지 한 번 확인. 실수로 올라가면 토스 WTS에서 키를 곧바로 재발급
-- [ ] 항목 6 뒤: dryrun으로 띄워 `.env` 값으로 토큰이 발급되는지 확인
+- [x] 항목 6 뒤: dryrun으로 띄워 `.env` 값으로 토큰이 발급되는지 확인 (networkTest 통과로 확인)
 - [ ] 항목 6·8 뒤: `./gradlew networkTest` 실행 (dryrun 앱을 끈 상태에서 — 토큰이 하나뿐이라 서로 죽인다). 8은 장 중에 (체결이 와야 하므로)
 - [ ] 항목 7 뒤: 장 마감 뒤 dryrun으로 띄워 토스 앱과 숫자 비교 (값이 멈춰 있을 때 비교해야 시점 차이가 없다)
 - [ ] 항목 9 뒤: 장 중에 dryrun으로 띄워 숫자가 토스 앱과 같이 움직이는지, 토스 앱·WTS를 같이 켜 둬도 연결이 서로 끊기지 않는지
@@ -122,6 +122,17 @@ Claude가 보여줄 것
   - `failedBrokers`는 문자열 목록에서 `FailedBroker(broker, reason)` 목록으로 바뀜. 로그는 `TossBroker 조회 실패: IP_BLOCKED (예외 종류)`
   - 그 밖의 401(`invalid-token`, 재발급 뒤에도 `token-revoked` 등)과 다른 403(`forbidden`)은 `OTHER`로 둔다
   - `./gradlew test` 전부 통과 (70개)
+- 2026-10-07 항목 6
+  - 공식 명세(openapi.json v1.2.21 `servers`)로 주소 확인: `https://openapi.tossinvest.com`
+  - `JsonFieldsTest` 3개(값이 달라도 통과, 빠진 필드 알려줌, 실서버 배열이 비면 그 안은 건너뜀)와 `TossConfigTest` 2개를 먼저 씀 → 4개 실패 확인 → 구현 뒤 통과
+  - `TossConfig`(@Profile dryrun)가 토큰·어댑터·환율을 등록. 비밀값은 프로젝트 폴더 `.env` (실행 위치 기준 상대 경로라 프로젝트 폴더에서 실행해야 한다)
+  - 함정: Spring Boot 4는 `RestClient.Builder` 빈을 별도 모듈(spring-boot-restclient)로 뺐다. 처음 시험이 빌더를 직접 넣어줘서 가려졌다 → 시험에서 빼 실패 확인 → `RestClient.builder()`로 직접 만듦 (새 의존성 없음)
+  - `./gradlew networkTest`: `@Tag("network")`만 실행, 매번 다시 돈다. `TossNetworkTest`가 계좌·보유·예수금(원·달러)·환율 응답을 `build/network/toss/`에 저장하고 녹화의 필드가 모두 있는지 본다. 토큰 응답은 저장하지 않는다
+  - `application-dryrun.properties`는 주석만 (설정할 값이 없음)
+  - Claude는 dryrun·networkTest를 실행하지 못한다 (훅). 사람 확인 남음
+  - `./gradlew test` 전부 통과 (75개)
+  - 사람 확인: dryrun 앱이 오류 없이 뜸. `./gradlew networkTest` (REST) 5개 통과 → `.env` 값으로 토큰 발급되고, 실서버 응답 모양이 녹화와 같음
+  - 남은 항목: 1단계 10개 중 4개 (7·8·9·10)
 
 ## 결정 기록
 - 2026-10-07 (사람이 정함)
