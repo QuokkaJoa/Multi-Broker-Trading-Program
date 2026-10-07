@@ -16,3 +16,6 @@
 - 주문 관련 (보류 중, 다시 넣을 때 참고): `clientOrderId`로 중복 방지. 국내는 정수 수량만. 미국 금액 주문(`orderAmount`, 달러)은 시장가·정규장~마감 1시간 전만. 1억 원 이상은 `confirmHighValueOrder` 필요 — 어댑터가 자동으로 true를 넣지 않는다
 - 예수금 API 이름(`buying-power`, `cashBuyingPower`)에 buy가 들어가 주문 메서드 금지 구조 시험에 걸린다 → 어댑터에서 `cash`로 바꿔 읽는다
 - 토큰 발급(`/oauth2/token`) 오류는 다른 API와 모양이 다르다: OAuth2 형식 `{"error":"access_denied"}`(403 IP 차단)·`{"error":"invalid_client"}`(401 키 틀림). 다른 API는 `{"error":{"code":"ip-not-allowed"}}`
+- 웹소켓(asyncapi.json v1.2.2): 인증은 연결할 때 한 번. 연결 중 토큰이 만료돼도 끊기지 않는다. 다시 붙기 전에 옛 연결을 먼저 닫는다 (안 그러면 연결 2개 한도로 서로 밀어낸다)
+- 웹소켓: 서버 데이터는 180초 끊김 타이머를 되돌리지 않는다. 받기만 해도 60초마다 텍스트 `PING`을 보내야 한다
+- 웹소켓: `rejected`된 항목은 고치기 전엔 다시 선언해도 또 거부된다 → 다음 선언에서 뺀다. 구독 직후 첫 값은 안 오고 다음 체결부터 온다

@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Profile;
 import tradinghub.brokers.ExchangeRates;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.Random;
 
 @Configuration
 @Profile("fake")
@@ -24,5 +26,10 @@ class FakeBrokerConfig {
     @Bean
     ExchangeRates fakeRates() {
         return () -> new BigDecimal("1385.20");
+    }
+
+    @Bean
+    FakePriceStream fakePrices() {
+        return new FakePriceStream(new Random(), Duration.ofSeconds(3));
     }
 }

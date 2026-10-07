@@ -6,7 +6,7 @@
 ## 층
 web → service → brokers → core
 - core: 계좌·보유·통화(KRW/USD)·금액. 다른 층을 모른다
-- brokers: `Broker` 약속 + 증권사별 어댑터(toss, kiwoom) + fake. 인증·토큰·호출 한도·허용 IP 오류·응답 모양 차이는 여기서 끝난다. 환율도 여기서 받는다
+- brokers: `Broker` 약속 + 증권사별 어댑터(toss, kiwoom) + fake. 인증·토큰·호출 한도·허용 IP 오류·응답 모양 차이는 여기서 끝난다. 환율(`ExchangeRates`)과 실시간 체결가(`PriceStream`)도 여기서 받는다 (`Broker`와 따로 둔 약속)
 - service: 통합 잔고(원화 합산), 알림
 - web: 화면. 계산·판단 없이 service 결과를 보여주기만 한다
 

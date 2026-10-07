@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import tradinghub.brokers.Broker;
 import tradinghub.brokers.ExchangeRates;
+import tradinghub.brokers.PriceStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,11 +15,12 @@ class TossConfigTest {
     ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(TossConfig.class);
 
     @Test
-    void dryrun이면_토스_어댑터와_환율이_켜진다() {
+    void dryrun이면_토스_어댑터와_환율과_체결가가_켜진다() {
         runner.withPropertyValues("spring.profiles.active=dryrun").run(context -> {
             assertThat(context).getBeans(Broker.class).hasSize(1);
             assertThat(context.getBean(Broker.class)).isInstanceOf(TossBroker.class);
             assertThat(context.getBean(ExchangeRates.class)).isInstanceOf(TossExchangeRates.class);
+            assertThat(context.getBean(PriceStream.class)).isInstanceOf(TossPriceStream.class); // 볼 종목이 없으면 연결하지 않는다
         });
     }
 
