@@ -1,5 +1,5 @@
 #!/bin/bash
-# Claude는 fake 모드만 실행한다. mock·dryrun·live 프로필과 실서버 시험(networkTest)은 사람만 실행한다.
+# Claude는 fake 모드와 dryrun 화면 띄우기만 실행한다. mock·live 프로필, 그 밖의 dryrun 명령과 실서버 시험(networkTest)은 사람만 실행한다.
 # exit 2 = 차단, 이유는 Claude에게 전달된다. 시험: bash .claude/hooks/block-live.test.sh
 input=$(cat)
 # 명령만 꺼낸다. 꺼내지 못하면 입력 전체를 검사한다 (막는 쪽으로 실패)
@@ -15,11 +15,15 @@ fi
 printf '%s' "$cmd" | grep -Eq '(^|[^a-z])(gradlew|gradle|java|mvnw|mvn)([^a-z]|$)|bootRun' || exit 0
 
 block() {
-  echo "$1 fake가 아닌 실행 모드(mock·dryrun·live)와 networkTest는 사람만 실행할 수 있어요. fake 모드를 쓰세요." >&2
+  echo "$1 mock·live와 networkTest는 사람만 실행할 수 있어요. dryrun은 ./gradlew bootRun --args='--spring.profiles.active=dryrun' 한 모양으로만 띄울 수 있어요." >&2
   exit 2
 }
 
-if printf '%s' "$cmd" | grep -Eqi 'profiles[._]active[^a-z]*[a-z,]*(mock|dryrun|live)|networkTest'; then
+# 예외: dryrun 화면 띄우기는 Claude도 한다 (토스 앱과 숫자 비교용, 사람이 정함). 한 줄, 정확히 이 모양, 로그 파일 돌리기만 허용
+dryrun_ok=$'^\\./gradlew bootRun --args=\'--spring\\.profiles\\.active=dryrun\'( > [^;&|<>$`()\']+)?( 2>&1)?$'
+if [[ "$cmd" != *$'\n'* && "$cmd" =~ $dryrun_ok ]]; then
+  : # 설정 파일 검사는 아래에서 그대로 한다
+elif printf '%s' "$cmd" | grep -Eqi 'profiles[._]active[^a-z]*[a-z,]*(mock|dryrun|live)|networkTest'; then
   block "명령에 fake가 아닌 모드가 있어요."
 fi
 

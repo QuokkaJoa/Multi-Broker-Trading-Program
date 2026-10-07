@@ -25,6 +25,16 @@ check block "인자로 live"               "./gradlew bootRun --args='--spring.p
 check block "환경변수로 dryrun"         "SPRING_PROFILES_ACTIVE=dryrun ./gradlew bootRun"
 check block "jar를 mock으로"            "java -jar build/libs/app.jar --spring.profiles.active=mock"
 check block "실서버 시험"               "./gradlew networkTest"
+# dryrun 화면 띄우기만 Claude에게 연다 (토스 앱과 숫자 비교용, 사람이 정함). 정확히 이 모양일 때만
+check pass  "dryrun 화면 띄우기"        "./gradlew bootRun --args='--spring.profiles.active=dryrun'"
+check pass  "dryrun 로그를 파일로"      "./gradlew bootRun --args='--spring.profiles.active=dryrun' > /tmp/x/boot.log 2>&1"
+check block "dryrun에 live 섞기"        "./gradlew bootRun --args='--spring.profiles.active=dryrun,live'"
+check block "dryrun 뒤에 networkTest"   "./gradlew bootRun --args='--spring.profiles.active=dryrun' && ./gradlew networkTest"
+check block "dryrun 뒤에 다른 명령"     "./gradlew bootRun --args='--spring.profiles.active=dryrun'; ./gradlew bootRun --args='--spring.profiles.active=live'"
+check block "dryrun에 인자 더하기"      "./gradlew bootRun --args='--spring.profiles.active=dryrun --spring.profiles.include=live'"
+check block "dryrun 다음 줄에 live"     "./gradlew bootRun --args='--spring.profiles.active=dryrun'
+./gradlew bootRun --args='--spring.profiles.active=live'"
+check block "jar를 dryrun으로"         "java -jar build/libs/app.jar --spring.profiles.active=dryrun"
 # 빈틈 2: 실행이 아닌 명령에 글자만 있는 경우
 check pass  "문서에 글자만 씀"          "echo 'networkTest는 사람만 돌린다' >> docs/plan.md"
 check pass  "grep으로 찾기"             "grep -rn 'profiles.active=dryrun' docs"

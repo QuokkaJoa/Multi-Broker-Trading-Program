@@ -9,9 +9,10 @@
 - 실서버 시험(`@Tag("network")`)은 사람만 돌린다: `./gradlew networkTest` (1단계부터)
 
 ## 실행 모드
-- fake: 가짜 증권사. Claude는 이것만 실행한다 (나머지는 훅이 막음)
+- fake: 가짜 증권사. Claude가 자유롭게 실행한다
 - mock: 키움 모의투자 조회. 토스는 모의투자가 없어 fake로 둔다
-- dryrun: 실계좌 조회
+- dryrun: 실계좌 조회. Claude는 `./gradlew bootRun --args='--spring.profiles.active=dryrun'` 한 모양으로만 띄운다 (토스 앱과 숫자 비교용, 훅이 다른 모양은 막음). 본 금액은 git·진행 기록에 쓰지 않는다
+- mock·live·networkTest: 사람만 실행한다 (훅이 막음)
 - live: 실전 주문용. 1차에는 주문이 없어 쓰지 않는다
 
 ## 절대 규칙
