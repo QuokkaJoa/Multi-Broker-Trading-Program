@@ -29,7 +29,7 @@
 - [x] 2. 토스 토큰 — 녹화 응답(공식 명세의 예시로 만든 것)으로: 토큰 발급, 만료 전까지 재사용, 401 `expired-token`·`token-revoked`이면 한 번만 다시 발급. 토큰은 메모리에만. HTTP는 Spring `RestClient` (새 의존성 없음)
 - [x] 3. 토스 어댑터 조회 — `TossBroker`가 `Broker` contract 시험 통과: 계좌 목록(`AccountId`=`toss-`+끝 4자리, `accountSeq`는 어댑터 안에만), 보유(→ `Holding`), 예수금(buying-power KRW·USD → `Money` 둘)
 - [x] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
-- [ ] 5. 오류를 알아보게 — 403 IP 차단, 401 키 틀림, 429 한도 초과를 각각 구분되는 예외로. 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인. 통합 잔고 `failedBrokers`에 이유 종류가 남는다
+- [x] 5. 오류를 알아보게 — 403 IP 차단, 401 키 틀림, 429 한도 초과를 각각 구분되는 예외로. 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인. 통합 잔고 `failedBrokers`에 이유 종류가 남는다
 - [ ] 6. dryrun 설정 + networkTest (REST) — `application-dryrun.properties`(토스 어댑터 켜기), `./gradlew networkTest` 작업(`@Tag("network")`만 실행). 시험 내용: 실서버 응답의 필드 모양이 녹화와 같은지 (값은 비교 안 함). 실서버 응답은 git 제외 폴더에 저장
 - [ ] 7. 첫 화면 (스냅샷) — Thymeleaf + htmx (decisions/004). 원화 총합, 계좌별 예수금·평가금, 보유 종목 표(종목·수량·현재가·평가금·통화), 환율과 조회 시각, 실패한 증권사 표시. 30초마다 REST로 다시 조회(htmx). htmx는 파일로 넣는다 (외부 CDN 안 씀). fake로 띄워 확인
 - [ ] 8. 체결가 받기 — `brokers`에 `PriceStream` 약속 새로 (`Broker`는 그대로). 토스 구현은 JDK 내장 `java.net.http.WebSocket` (새 의존성 없음): 보유 종목 구독, 60초 PING, 끊기면 점점 늦게 재연결, 보유가 바뀌면 구독 배열 다시 보내기. fake 구현은 가짜 체결을 몇 초마다 낸다. 시험: 녹화 프레임(명세 예시)으로 ack·체결·rejected·끊김. networkTest에 "보유 종목 하나 구독 → ack와 체결 프레임 모양 확인" 추가
@@ -113,6 +113,15 @@ Claude가 보여줄 것
   - `TossExchangeRatesTest` 3개(midRate 사용, 59초 안 재사용, 1분 뒤 재조회)를 먼저 씀 → 빈 구현으로 3개 실패 확인 → `TossExchangeRates` 구현 뒤 통과
   - 응답의 `validUntil`은 쓰지 않고 받은 시각부터 1분 동안 재사용. 앱 연결(빈 등록)은 항목 6에서
   - `./gradlew test` 전부 통과 (63개)
+- 2026-10-07 항목 5
+  - 공식 문서로 오류 코드 확인: API는 403 `ip-not-allowed`, 429 `rate-limit-exceeded`(+`edge-rate-limit-exceeded`). 토큰 발급은 OAuth2 형식이라 403 `{"error":"access_denied"}`, 키 틀림은 401 `{"error":"invalid_client"}`
+  - 녹화 4개 추가. `error-ip-not-allowed.json`은 openapi.json에 예시가 없어 overview.md 오류 표의 코드·문구로 만듦 (README에 적음)
+  - `TossErrorsTest` 6개와 `BalanceServiceTest` 1개를 먼저 씀 → 7개 실패 확인 → 구현 뒤 통과
+  - 공통 예외 `brokers.BrokerException`(이유: `IP_BLOCKED`·`BAD_KEY`·`RATE_LIMITED`·`OTHER`). 토스 호출은 모두 `TossTokens.withToken`을 지나므로 거기서 한 번만 바꾼다
+  - 예외에 원인(`HttpClientErrorException`)을 붙이지 않는다. 원인 메시지에 응답 본문이 통째로 들어가기 때문. 메시지는 이유·상태·코드만
+  - `failedBrokers`는 문자열 목록에서 `FailedBroker(broker, reason)` 목록으로 바뀜. 로그는 `TossBroker 조회 실패: IP_BLOCKED (예외 종류)`
+  - 그 밖의 401(`invalid-token`, 재발급 뒤에도 `token-revoked` 등)과 다른 403(`forbidden`)은 `OTHER`로 둔다
+  - `./gradlew test` 전부 통과 (70개)
 
 ## 결정 기록
 - 2026-10-07 (사람이 정함)
