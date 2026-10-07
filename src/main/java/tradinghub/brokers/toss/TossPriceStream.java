@@ -88,7 +88,7 @@ public final class TossPriceStream implements PriceStream, AutoCloseable {
     public synchronized void watch(List<Holding> holdings) {
         topics = new TreeSet<>(holdings.stream().map(TossPriceStream::topic).toList());
         if (socket != null) declare();
-        else if (!wanted().isEmpty()) connect();
+        else connect();
     }
 
     synchronized void ping() {
@@ -122,8 +122,9 @@ public final class TossPriceStream implements PriceStream, AutoCloseable {
         return wanted;
     }
 
+    /** 볼 종목이 없으면 열지 않는다 (끊긴 뒤 다시 연결할 때도). 다음 watch가 열어 준다. */
     private synchronized void connect() {
-        if (socket != null || connecting || timer.isShutdown()) return;
+        if (socket != null || connecting || timer.isShutdown() || wanted().isEmpty()) return;
         connecting = true;
         try {
             opener.apply(token.get(), new Listener()).whenComplete((ws, e) -> {

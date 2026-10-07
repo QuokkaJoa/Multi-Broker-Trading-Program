@@ -135,6 +135,20 @@ class TossPriceStreamTest {
     }
 
     @Test
+    void 볼_종목이_없을_때_끊기면_다시_연결하지_않고_다시_보면_연결한다() throws InterruptedException {
+        stream.watch(List.of(SAMSUNG));
+        stream.watch(List.of());
+
+        var first = sockets.getFirst();
+        first.listener.onClose(first, 1006, "");
+        Thread.sleep(100); // 대기 1ms라 다시 연결한다면 이미 했다
+
+        assertThat(sockets).hasSize(1);
+        stream.watch(List.of(AAPL));
+        eventually(() -> sockets.size() == 2 && !sockets.get(1).sent.isEmpty());
+    }
+
+    @Test
     void 서버_배포_프레임이면_닫고_다시_연결한다() {
         stream.watch(List.of(SAMSUNG));
 
