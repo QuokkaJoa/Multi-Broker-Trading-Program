@@ -126,6 +126,19 @@ class LiveBalanceServiceTest {
         assertThat(b.balance().grandTotalKrw().amount()).isEqualByComparingTo("1914567");
     }
 
+    @Test
+    void 환율이_실패한_스냅샷에_체결이_와도_화면이_나온다() {
+        var noRate = new LiveBalanceService(new BalanceService(List.of(FakeBroker.krwAndUsd()),
+                Optional.of(() -> { throw new IllegalStateException("환율 실패"); })), Optional.of(prices), () -> now);
+        noRate.current();
+        prices.trade("AAPL", Money.of("226", USD), T0);
+
+        var b = noRate.current();
+
+        assertThat(b.balance().usdToKrw()).isNull();
+        assertThat(b.balance().grandTotalKrw()).isEqualTo(b.balance().krwTotal());
+    }
+
     /** 손으로 체결을 넣는 PriceStream. */
     static class HandStream implements PriceStream {
         List<Holding> watched = List.of();
