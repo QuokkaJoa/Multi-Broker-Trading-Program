@@ -1,1 +1,2 @@
 토스 녹화 응답. 공식 명세(openapi.json v1.2.21)의 예시 값 그대로다. 실서버 응답은 여기에 두지 않는다 (계획서 "공개 저장소라서 지킬 것").
+`error-ip-not-allowed.json`은 openapi.json에 예시가 없어 overview.md "에러 응답" 표의 코드·문구로 만들었다.

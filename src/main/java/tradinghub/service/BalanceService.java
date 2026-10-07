@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import tradinghub.brokers.Broker;
+import tradinghub.brokers.BrokerException;
+import tradinghub.brokers.BrokerException.Reason;
 import tradinghub.brokers.ExchangeRates;
 import tradinghub.core.AccountId;
 import tradinghub.core.Currency;
@@ -36,7 +38,7 @@ public class BalanceService {
 
     public ConsolidatedBalance consolidated() {
         var accounts = new ArrayList<AccountBalance>();
-        var failed = new ArrayList<String>();
+        var failed = new ArrayList<FailedBroker>();
         for (Broker broker : brokers) {
             try {
                 var mine = new ArrayList<AccountBalance>();
@@ -45,10 +47,11 @@ public class BalanceService {
                 }
                 accounts.addAll(mine);
             } catch (RuntimeException e) {
-                // 증권사 하나가 실패해도 나머지는 보여준다. 메시지에 비밀값이 섞일 수 있어 예외 종류만 남긴다
+                // 증권사 하나가 실패해도 나머지는 보여준다. 메시지에 비밀값이 섞일 수 있어 이유와 예외 종류만 남긴다
                 String name = broker.getClass().getSimpleName();
-                log.warn("{} 조회 실패: {}", name, e.getClass().getName());
-                failed.add(name);
+                Reason reason = e instanceof BrokerException b ? b.reason() : Reason.OTHER;
+                log.warn("{} 조회 실패: {} ({})", name, reason, e.getClass().getName());
+                failed.add(new FailedBroker(name, reason));
             }
         }
 

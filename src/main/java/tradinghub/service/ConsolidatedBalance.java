@@ -11,7 +11,7 @@ import java.util.List;
  */
 public record ConsolidatedBalance(
         List<AccountBalance> accounts,
-        List<String> failedBrokers,
+        List<FailedBroker> failedBrokers,
         Money krwTotal,
         Money usdTotal,
         BigDecimal usdToKrw,

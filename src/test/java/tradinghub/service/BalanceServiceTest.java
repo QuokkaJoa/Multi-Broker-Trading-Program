@@ -2,6 +2,8 @@ package tradinghub.service;
 
 import org.junit.jupiter.api.Test;
 import tradinghub.brokers.Broker;
+import tradinghub.brokers.BrokerException;
+import tradinghub.brokers.BrokerException.Reason;
 import tradinghub.brokers.ExchangeRates;
 import tradinghub.brokers.fake.FakeBroker;
 import tradinghub.core.AccountId;
@@ -64,8 +66,19 @@ class BalanceServiceTest {
                 .consolidated();
 
         assertThat(total.accounts()).hasSize(1);
-        assertThat(total.failedBrokers()).containsExactly("BrokenBroker");
+        assertThat(total.failedBrokers()).containsExactly(new FailedBroker("BrokenBroker", Reason.OTHER));
         assertThat(total.grandTotalKrw().amount()).isEqualByComparingTo("1914567");
+    }
+
+    @Test
+    void 증권사가_알려준_실패_이유를_남긴다() {
+        Broker blocked = new BrokenBroker() {
+            public List<AccountId> accounts() { throw new BrokerException(Reason.IP_BLOCKED, "IP 차단"); }
+        };
+
+        var total = new BalanceService(List.of(blocked), Optional.empty()).consolidated();
+
+        assertThat(total.failedBrokers()).extracting(FailedBroker::reason).containsExactly(Reason.IP_BLOCKED);
     }
 
     @Test
