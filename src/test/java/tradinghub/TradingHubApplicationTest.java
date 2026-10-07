@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
+import tradinghub.brokers.PriceStream;
+import tradinghub.brokers.fake.FakePriceStream;
 import tradinghub.service.BalanceService;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,6 +15,7 @@ class TradingHubApplicationTest {
 
     @Autowired Environment env;
     @Autowired BalanceService balances;
+    @Autowired PriceStream prices;
 
     @Test
     void 프로필을_안_주면_fake로_뜬다() {
@@ -29,5 +32,10 @@ class TradingHubApplicationTest {
         var total = balances.consolidated();
         assertThat(total.accounts()).hasSize(2);
         assertThat(total.grandTotalKrw().amount()).isEqualByComparingTo("5644016");
+    }
+
+    @Test
+    void fake_모드에서_가짜_체결가가_연결된다() {
+        assertThat(prices).isInstanceOf(FakePriceStream.class);
     }
 }
