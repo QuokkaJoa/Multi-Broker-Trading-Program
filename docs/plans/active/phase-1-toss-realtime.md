@@ -31,7 +31,7 @@
 - [x] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
 - [x] 5. 오류를 알아보게 — 403 IP 차단, 401 키 틀림, 429 한도 초과를 각각 구분되는 예외로. 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인. 통합 잔고 `failedBrokers`에 이유 종류가 남는다
 - [x] 6. dryrun 설정 + networkTest (REST) — `application-dryrun.properties`(토스 어댑터 켜기), `./gradlew networkTest` 작업(`@Tag("network")`만 실행). 시험 내용: 실서버 응답의 필드 모양이 녹화와 같은지 (값은 비교 안 함). 실서버 응답은 git 제외 폴더에 저장
-- [ ] 7. 첫 화면 (스냅샷) — Thymeleaf + htmx (decisions/004). 원화 총합, 계좌별 예수금·평가금, 보유 종목 표(종목·수량·현재가·평가금·통화), 환율과 조회 시각, 실패한 증권사 표시. 30초마다 REST로 다시 조회(htmx). htmx는 파일로 넣는다 (외부 CDN 안 씀). fake로 띄워 확인
+- [x] 7. 첫 화면 (스냅샷) — Thymeleaf + htmx (decisions/004). 원화 총합, 계좌별 예수금·평가금, 보유 종목 표(종목·수량·현재가·평가금·통화), 환율과 조회 시각, 실패한 증권사 표시. 30초마다 REST로 다시 조회(htmx). htmx는 파일로 넣는다 (외부 CDN 안 씀). fake로 띄워 확인
 - [ ] 8. 체결가 받기 — `brokers`에 `PriceStream` 약속 새로 (`Broker`는 그대로). 토스 구현은 JDK 내장 `java.net.http.WebSocket` (새 의존성 없음): 보유 종목 구독, 60초 PING, 끊기면 점점 늦게 재연결, 보유가 바뀌면 구독 배열 다시 보내기. fake 구현은 가짜 체결을 몇 초마다 낸다. 시험: 녹화 프레임(명세 예시)으로 ack·체결·rejected·끊김. networkTest에 "보유 종목 하나 구독 → ack와 체결 프레임 모양 확인" 추가
 - [ ] 9. 실시간 평가금 — service가 스냅샷과 체결가를 합친다: 체결가가 온 종목만 `수량 × 체결가`(통화 단위로 HALF_UP 반올림), 나머지는 스냅샷 값. 다음 스냅샷이 오면 스냅샷 값으로 맞춘다. 브라우저로는 SSE(Spring `SseEmitter`) + htmx sse 확장(파일로 넣음). 화면에 "실시간 추정 / 스냅샷 시각" 표시. fake로 띄워 숫자가 움직이는 것 확인
 - [ ] 10. 문서 마무리 — `docs/brokers/toss.md`에 새로 안 함정 추가, 사람 확인 결과를 진행 기록에 적고 ROADMAP 갱신
@@ -133,6 +133,15 @@ Claude가 보여줄 것
   - `./gradlew test` 전부 통과 (75개)
   - 사람 확인: dryrun 앱이 오류 없이 뜸. `./gradlew networkTest` (REST) 5개 통과 → `.env` 값으로 토큰 발급되고, 실서버 응답 모양이 녹화와 같음
   - 남은 항목: 1단계 10개 중 4개 (7·8·9·10)
+- 2026-10-07 항목 7
+  - 보유 표에 현재가가 필요해 `Holding`에 `price`(증권사가 준 현재가) 추가. 토스는 `lastPrice`, fake는 평가금 ÷ 수량으로 맞춘 값
+  - `TossBrokerTest` 현재가 확인과 `PageTest` 3개(총합·계좌·보유·환율·조회 시각, 실패 증권사 "IP 차단", 30초 htmx·내 파일)를 먼저 씀 → 4개 실패 확인 → 구현 뒤 통과
+  - `spring-boot-starter-thymeleaf` 추가 (decisions/004). htmx 2.0.11을 unpkg에서 받아 `static/htmx-2.0.11.min.js`로 넣음 (화면은 외부 CDN을 안 부름)
+  - 30초 재조회는 `hx-get="/"` + `hx-select="#balance"`: 주소 하나로 첫 화면과 갱신을 같이 쓴다
+  - 실패 이유 문구는 화면(템플릿)에서 정한다. 함정: 훅이 Bash 명령 속 `.env` 글자를 막아, 화면 문구는 "비밀값 파일"로 씀
+  - fake로 띄워 확인: 계좌 2개, 원화 총합 5,644,016원, 보유 표, 환율·조회 시각. Host가 다르면 화면·htmx 파일 모두 403
+  - `./gradlew test` 전부 통과 (78개)
+  - 남은 항목: 1단계 10개 중 3개 (8·9·10)
 
 ## 결정 기록
 - 2026-10-07 (사람이 정함)

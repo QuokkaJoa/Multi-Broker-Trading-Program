@@ -18,17 +18,17 @@ public record FakeBroker(AccountId account, List<Money> cash, List<Holding> hold
     public static FakeBroker krwOnly() {
         return new FakeBroker(new AccountId("fake-isa-1111"),
                 List.of(Money.of("1234567", KRW)),
-                List.of(new Holding("069500", "KODEX 200", new BigDecimal("10"), Money.of("380000", KRW)),
-                        new Holding("005930", "삼성전자", new BigDecimal("5"), Money.of("300000", KRW))));
+                List.of(new Holding("069500", "KODEX 200", new BigDecimal("10"), Money.of("38000", KRW), Money.of("380000", KRW)),
+                        new Holding("005930", "삼성전자", new BigDecimal("5"), Money.of("60000", KRW), Money.of("300000", KRW))));
     }
 
     /** 원화와 달러가 섞인 계좌 (토스 종합매매 흉내). */
     public static FakeBroker krwAndUsd() {
         return new FakeBroker(new AccountId("fake-toss-2222"),
                 List.of(Money.of("500000", KRW), Money.of("1000.50", USD)),
-                List.of(new Holding("005930", "삼성전자", new BigDecimal("3"), Money.of("180000", KRW)),
-                        new Holding("AAPL", "Apple", new BigDecimal("2"), Money.of("450.20", USD)),
-                        new Holding("VOO", "Vanguard S&P 500", new BigDecimal("1.5"), Money.of("750.75", USD))));
+                List.of(new Holding("005930", "삼성전자", new BigDecimal("3"), Money.of("60000", KRW), Money.of("180000", KRW)),
+                        new Holding("AAPL", "Apple", new BigDecimal("2"), Money.of("225.10", USD), Money.of("450.20", USD)),
+                        new Holding("VOO", "Vanguard S&P 500", new BigDecimal("1.5"), Money.of("500.50", USD), Money.of("750.75", USD))));
     }
 
     @Override
