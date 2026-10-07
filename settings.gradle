@@ -1,0 +1,5 @@
+plugins {
+    // 이 맥에 Java 25가 없으면 Gradle이 받아온다
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+rootProject.name = 'trading-hub'
