@@ -80,13 +80,11 @@ class TossPriceStreamTest {
         stream.watch(List.of(SAMSUNG));
         stream.watch(List.of(SAMSUNG));
         stream.watch(List.of(AAPL));
-        stream.watch(List.of());
 
         var socket = sockets.getFirst();
-        assertThat(socket.sent).hasSize(3);
+        assertThat(socket.sent).hasSize(2);
         assertJson(socket.sent.get(1), """
                 [{"type":"trade:us","codes":["AAPL"]}]""");
-        assertJson(socket.sent.get(2), "[]");
     }
 
     @Test
@@ -135,15 +133,16 @@ class TossPriceStreamTest {
     }
 
     @Test
-    void 볼_종목이_없을_때_끊기면_다시_연결하지_않고_다시_보면_연결한다() throws InterruptedException {
+    void 볼_종목이_없어지면_연결을_닫고_다시_보면_새로_연결한다() throws InterruptedException {
         stream.watch(List.of(SAMSUNG));
-        stream.watch(List.of());
+        stream.watch(List.of()); // 연결 2개 한도를 비워 둔다 (토스 앱·WTS 몫)
 
         var first = sockets.getFirst();
+        assertThat(first.aborted).isTrue();
         first.listener.onClose(first, 1006, "");
         Thread.sleep(100); // 대기 1ms라 다시 연결한다면 이미 했다
-
         assertThat(sockets).hasSize(1);
+
         stream.watch(List.of(AAPL));
         eventually(() -> sockets.size() == 2 && !sockets.get(1).sent.isEmpty());
     }
