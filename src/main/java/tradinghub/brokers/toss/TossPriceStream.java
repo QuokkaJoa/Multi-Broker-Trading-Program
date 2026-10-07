@@ -87,8 +87,9 @@ public final class TossPriceStream implements PriceStream, AutoCloseable {
     @Override
     public synchronized void watch(List<Holding> holdings) {
         topics = new TreeSet<>(holdings.stream().map(TossPriceStream::topic).toList());
-        if (socket != null) declare();
-        else connect();
+        if (socket == null) connect();
+        else if (wanted().isEmpty()) closeIdle();
+        else declare();
     }
 
     synchronized void ping() {
@@ -120,6 +121,15 @@ public final class TossPriceStream implements PriceStream, AutoCloseable {
         var wanted = new TreeSet<>(topics);
         wanted.removeAll(rejected);
         return wanted;
+    }
+
+    /** 볼 종목이 없으면 연결을 닫는다. 연결 2개 한도를 토스 앱·WTS 몫으로 비워 둔다. 끊김이 아니므로 다시 연결하지 않는다. */
+    private synchronized void closeIdle() {
+        WebSocket ws = socket;
+        socket = null;
+        declared = null;
+        ws.abort();
+        log.info("토스 웹소켓 닫음 (볼 종목 없음)");
     }
 
     /** 볼 종목이 없으면 열지 않는다 (끊긴 뒤 다시 연결할 때도). 다음 watch가 열어 준다. */
