@@ -42,5 +42,12 @@ rm "$proj/src/main/resources/application-fake.properties"
 printf 'spring:\n  profiles:\n    active: dryrun\n' > "$proj/src/main/resources/application.yml"
 check block "yml에 active: dryrun"      "./gradlew bootRun"
 
+# 비밀값 파일 .env는 Claude가 셸로도 읽지 못한다
+check block ".env 읽기"                 "cat .env"
+check block ".env 경로로 읽기"          "grep toss ./.env"
+check block ".env 복사"                 "cp .env /tmp/x"
+check pass  ".env.example은 괜찮다"     "cat .env.example"
+check pass  "gitignore 보기"            "cat .gitignore"
+
 [ $fail -eq 0 ] && echo "block-live 시험 전부 통과"
 exit $fail

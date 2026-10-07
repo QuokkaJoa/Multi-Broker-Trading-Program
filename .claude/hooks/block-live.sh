@@ -5,6 +5,12 @@ input=$(cat)
 # 명령만 꺼낸다. 꺼내지 못하면 입력 전체를 검사한다 (막는 쪽으로 실패)
 cmd=$(printf '%s' "$input" | python3 -c 'import json,sys; print(json.load(sys.stdin)["tool_input"]["command"])' 2>/dev/null) || cmd=$input
 
+# 비밀값 파일 .env는 셸로도 건드리지 않는다 (Read 도구는 settings.json에서 막음). .env.example은 괜찮다
+if printf '%s' "$cmd" | grep -Eq '(^|[^A-Za-z0-9_.])\.env([^A-Za-z0-9_.]|$)'; then
+  echo ".env에는 비밀값이 있어서 Claude가 열 수 없어요. 사람이 직접 다루세요." >&2
+  exit 2
+fi
+
 # 앱이나 시험을 실제로 돌리는 명령만 본다. 문서에 글자만 쓰는 명령은 막지 않는다
 printf '%s' "$cmd" | grep -Eq '(^|[^a-z])(gradlew|gradle|java|mvnw|mvn)([^a-z]|$)|bootRun' || exit 0
 

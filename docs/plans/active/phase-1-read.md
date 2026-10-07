@@ -25,7 +25,7 @@
 ## 범위
 한 항목 = 대화 한 번. 위에서부터 순서대로.
 
-- [ ] 1. 키체인 SecretStore — `/usr/bin/security find-generic-password -w`를 Java에서 부르는 `KeychainSecretStore`. 없는 이름이면 이름만 담은 `IllegalStateException`(값·명령 출력은 넣지 않음). 시험: 없는 이름 → 예외 (실제 키체인을 읽기만 함). 있는 값 읽기는 사람이 확인
+- [x] 1. .env SecretStore — 프로젝트 폴더 `.env`의 `이름=값`을 읽는 `EnvFileSecretStore` (decisions/006). 없는 이름·파일이면 이름만 담은 `IllegalStateException`. `.gitignore`에 `.env` (시험이 지킴), Claude는 `.env`를 열지 못함 (훅)
 - [ ] 2. 토스 토큰 — 녹화 응답(공식 명세의 예시로 만든 것)으로: 토큰 발급, 만료 전까지 재사용, 401 `expired-token`·`token-revoked`이면 한 번만 다시 발급. 토큰은 메모리에만. HTTP는 Spring `RestClient` (새 의존성 없음)
 - [ ] 3. 토스 어댑터 조회 — `TossBroker`가 `Broker` contract 시험 통과: 계좌 목록(`AccountId`=`toss-`+끝 4자리, `accountSeq`는 어댑터 안에만), 보유(→ `Holding`), 예수금(buying-power KRW·USD → `Money` 둘)
 - [ ] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
@@ -44,7 +44,7 @@
 - 키움, mock 프로필, 두 번째 증권사로 공통 약속 검증 → 2단계
 - 슬랙 알림 → 2단계
 - 차트·손익률 화면 (필요해지면 그때)
-- 토큰을 파일·키체인에 저장 (메모리에만)
+- 토큰을 파일에 저장 (메모리에만)
 - live 모드
 
 ## 공개 저장소라서 지킬 것
@@ -56,9 +56,9 @@
 ## 사람이 할 일
 - [x] 토스 WTS → 설정 > Open API에서 `client_id`·`client_secret` 발급
 - [x] 같은 화면 아래 "허용 IP 관리"에 집 공인 IP 등록. IP가 바뀌면 다시 등록
-- [ ] 키체인 등록 — 직접 터미널에서 (Claude는 `security` 명령이 막혀 있음). 서비스 `trading-hub`, 계정 `toss.client-id`·`toss.client-secret`:
-      `security add-generic-password -s trading-hub -a toss.client-id -w` (값은 프롬프트로 입력, 명령 기록에 안 남게)
-- [ ] 항목 1 뒤: 키체인 값이 실제로 읽히는지 한 번 확인 (값은 출력하지 않고 "읽힘/안 읽힘"만)
+- [ ] 프로젝트 폴더에 `.env` 만들기 (Claude는 못 엶): `toss.client-id=...`, `toss.client-secret=...` 두 줄. 그 뒤 `chmod 600 .env`
+- [ ] 커밋 전 `git status`에 `.env`가 안 보이는지 한 번 확인. 실수로 올라가면 토스 WTS에서 키를 곧바로 재발급
+- [ ] 항목 6 뒤: dryrun으로 띄워 `.env` 값으로 토큰이 발급되는지 확인
 - [ ] 항목 6·8 뒤: `./gradlew networkTest` 실행 (dryrun 앱을 끈 상태에서 — 토큰이 하나뿐이라 서로 죽인다). 8은 장 중에 (체결이 와야 하므로)
 - [ ] 항목 7 뒤: 장 마감 뒤 dryrun으로 띄워 토스 앱과 숫자 비교 (값이 멈춰 있을 때 비교해야 시점 차이가 없다)
 - [ ] 항목 9 뒤: 장 중에 dryrun으로 띄워 숫자가 토스 앱과 같이 움직이는지, 토스 앱·WTS를 같이 켜 둬도 연결이 서로 끊기지 않는지
@@ -89,13 +89,22 @@ Claude가 보여줄 것
 - 맥이 잠들었다 깨면 토큰 만료·웹소켓 끊김에서 매끄럽게 돌아오는지
 
 ## 진행 기록
+- 2026-10-07 항목 1
+  - 처음엔 키체인으로 만들었다가(시험 2개 실패 → 구현), 사람이 `.env`로 바꾸기로 해서 지웠다 (decisions/006)
+  - `EnvFileSecretStoreTest`(SecretStore contract 상속 + 등호 든 값, 공백·CRLF, 파일 없음)와 `GitIgnoreTest`를 먼저 씀 → 빈 구현으로 6개 실패 확인 → 구현·`.gitignore` 추가 뒤 통과
+  - 훅 시험에 `.env` 4가지 추가 → 3개 실패 확인 → 훅 고친 뒤 전부 통과
+  - `./gradlew test` 전부 통과
+  - `.env.example` 견본은 권한 설정(`Read(./.env.*)`)이 Claude의 쓰기도 막아 만들지 않았다. 형식은 decisions/006에 있다
 
 ## 결정 기록
 - 2026-10-07 (사람이 정함)
   - 보유 평가금은 `marketValue.amount`(세금·수수료 빼기 전). dryrun에서 앱과 다르면 다시 본다
   - 달러 환산은 `midRate`(매매기준율). dryrun에서 앱과 비교해 0.5%를 넘으면 다시 본다
-  - 키체인: 서비스 `trading-hub` 하나, 계정 이름은 `<증권사>.<키>` (예: `toss.client-id`). 2단계도 같은 규칙 (`kiwoom.*`, `slack.webhook`)
+  - 비밀값 이름은 `<증권사>.<키>` (예: `toss.client-id`). 2단계도 같은 규칙 (`kiwoom.*`, `slack.webhook`)
   - 실서버 응답은 git 제외 폴더에만 둔다. git의 녹화는 공식 명세 예시로 만든 가짜 값만
   - 예수금은 공식 buying-power로 먼저 만들고, dryrun에서 앱과 비교한 뒤 비공식 API를 쓸지 정한다 (약관 위험·세션 쿠키라는 새 비밀값·예고 없이 깨짐)
   - 화면은 웹소켓 체결가로 실시간. 그래서 0단계 결정 "평가금은 증권사가 준 값"을 바꾼다: 스냅샷(30초마다 REST)은 증권사 값, 그 사이는 `수량 × 체결가` 추정. 앱과 맞추는 비교는 장 마감 뒤 스냅샷으로 한다
+  - 비밀값은 키체인 대신 프로젝트 폴더의 `.env` (decisions/006). 공개 저장소의 커밋 사고 위험을 알고 정함
+  - `.env`는 읽을 때마다 다시 읽는다 (고치면 재시작 없이 반영). 값의 앞뒤 공백은 뗀다
+  - `EnvFileSecretStore`를 앱에 연결(빈 등록)하는 일은 dryrun 설정(항목 6)에서 한다. fake는 비밀값이 필요 없다
   - 체결가는 `Broker`가 아니라 새 약속 `PriceStream`으로 받는다. `Broker`는 조회 약속 그대로 두고, 키움이 실시간을 못 주면 억지로 구현하지 않게 (`ExchangeRates`와 같은 이유)

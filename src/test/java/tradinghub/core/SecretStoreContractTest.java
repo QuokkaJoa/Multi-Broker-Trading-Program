@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** 키체인 구현(1단계)도 이 시험을 상속해 통과해야 한다. */
+/** .env 구현도 이 시험을 상속해 통과해야 한다. */
 public abstract class SecretStoreContractTest {
 
     /** "test.present" 이름에 "s3cr3t-value"가 들어 있는 저장소. */
