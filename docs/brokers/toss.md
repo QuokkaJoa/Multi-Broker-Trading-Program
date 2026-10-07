@@ -14,3 +14,4 @@
 - 장 운영·휴장: `GET /api/v1/market-calendar/KR|US`
 - 주식 모으기 API 없음 (decisions/005)
 - 주문 관련 (보류 중, 다시 넣을 때 참고): `clientOrderId`로 중복 방지. 국내는 정수 수량만. 미국 금액 주문(`orderAmount`, 달러)은 시장가·정규장~마감 1시간 전만. 1억 원 이상은 `confirmHighValueOrder` 필요 — 어댑터가 자동으로 true를 넣지 않는다
+- 예수금 API 이름(`buying-power`, `cashBuyingPower`)에 buy가 들어가 주문 메서드 금지 구조 시험에 걸린다 → 어댑터에서 `cash`로 바꿔 읽는다

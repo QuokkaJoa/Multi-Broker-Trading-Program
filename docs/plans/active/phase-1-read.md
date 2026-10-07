@@ -27,7 +27,7 @@
 
 - [x] 1. .env SecretStore — 프로젝트 폴더 `.env`의 `이름=값`을 읽는 `EnvFileSecretStore` (decisions/006). 없는 이름·파일이면 이름만 담은 `IllegalStateException`. `.gitignore`에 `.env` (시험이 지킴), Claude는 `.env`를 열지 못함 (훅)
 - [x] 2. 토스 토큰 — 녹화 응답(공식 명세의 예시로 만든 것)으로: 토큰 발급, 만료 전까지 재사용, 401 `expired-token`·`token-revoked`이면 한 번만 다시 발급. 토큰은 메모리에만. HTTP는 Spring `RestClient` (새 의존성 없음)
-- [ ] 3. 토스 어댑터 조회 — `TossBroker`가 `Broker` contract 시험 통과: 계좌 목록(`AccountId`=`toss-`+끝 4자리, `accountSeq`는 어댑터 안에만), 보유(→ `Holding`), 예수금(buying-power KRW·USD → `Money` 둘)
+- [x] 3. 토스 어댑터 조회 — `TossBroker`가 `Broker` contract 시험 통과: 계좌 목록(`AccountId`=`toss-`+끝 4자리, `accountSeq`는 어댑터 안에만), 보유(→ `Holding`), 예수금(buying-power KRW·USD → `Money` 둘)
 - [ ] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
 - [ ] 5. 오류를 알아보게 — 403 IP 차단, 401 키 틀림, 429 한도 초과를 각각 구분되는 예외로. 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인. 통합 잔고 `failedBrokers`에 이유 종류가 남는다
 - [ ] 6. dryrun 설정 + networkTest (REST) — `application-dryrun.properties`(토스 어댑터 켜기), `./gradlew networkTest` 작업(`@Tag("network")`만 실행). 시험 내용: 실서버 응답의 필드 모양이 녹화와 같은지 (값은 비교 안 함). 실서버 응답은 git 제외 폴더에 저장
@@ -102,6 +102,12 @@ Claude가 보여줄 것
   - 만료 1분 전부터 새로 발급. 재발급은 expired-token·token-revoked일 때만 한 번. invalid-token 등 다른 401은 그대로 던짐
   - 두 스레드가 같이 401을 받으면 먼저 온 쪽만 재발급 (토큰이 1개라 겹쳐 받으면 서로 죽임)
   - `./gradlew test` 전부 통과 (53개)
+- 2026-10-07 항목 3
+  - 녹화 4개(accounts, holdings, buying-power KRW·USD)를 명세 예시 값 그대로 둠
+  - `TossBrokerTest`(Broker contract 상속 + 계좌 이름·보유·예수금 변환)를 먼저 씀 → 빈 구현으로 5개 실패 확인 → 구현 뒤 통과
+  - 계좌 API 시험은 `X-Tossinvest-Account` 헤더가 있어야만 응답하게 해서 accountSeq 전달도 확인
+  - 구조 시험 `어디에도_주문_메서드가_없다`가 `buyingPower`·`cashBuyingPower` 이름(조회 전용)에 걸림 → 사람이 정한 대로 규칙은 두고 이름만 `cashOf`·`cash`로 바꿈 (결정 기록)
+  - `./gradlew test` 전부 통과 (60개)
 
 ## 결정 기록
 - 2026-10-07 (사람이 정함)
@@ -115,3 +121,6 @@ Claude가 보여줄 것
   - `.env`는 읽을 때마다 다시 읽는다 (고치면 재시작 없이 반영). 값의 앞뒤 공백은 뗀다
   - `EnvFileSecretStore`를 앱에 연결(빈 등록)하는 일은 dryrun 설정(항목 6)에서 한다. fake는 비밀값이 필요 없다
   - 체결가는 `Broker`가 아니라 새 약속 `PriceStream`으로 받는다. `Broker`는 조회 약속 그대로 두고, 키움이 실시간을 못 주면 억지로 구현하지 않게 (`ExchangeRates`와 같은 이유)
+- 2026-10-07 항목 3 (사람이 정함)
+  - 주문 메서드 금지 구조 시험은 넓게 둔다. 조회 API 이름에 buy·order 등이 있으면 규칙에 예외를 두지 않고 어댑터 쪽 이름을 바꾼다 (JSON 필드는 `@JsonProperty`로 읽음)
+  - 토스 계좌는 `BROKERAGE`만 받는다 (명세상 지금은 이것만 지원, 다른 값은 건너뜀)
