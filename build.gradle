@@ -26,3 +26,16 @@ tasks.named('test') {
         exceptionFormat 'full'
     }
 }
+
+// 실서버 시험 (@Tag("network")). 사람만 돌린다. 실서버 응답은 build/network/에 저장 (git 제외)
+tasks.register('networkTest', Test) {
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'network' }
+    outputs.upToDateWhen { false } // 실서버는 매번 다시 본다
+    testLogging {
+        events 'passed', 'failed', 'skipped'
+        exceptionFormat 'full'
+    }
+}
