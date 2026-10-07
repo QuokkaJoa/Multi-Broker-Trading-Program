@@ -26,10 +26,12 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -51,6 +53,7 @@ public final class TossPriceStream implements PriceStream, AutoCloseable {
     private final Supplier<String> token;
     private final BiFunction<String, WebSocket.Listener, CompletableFuture<WebSocket>> opener;
     private final Duration firstDelay;
+    private final Duration sendTimeout;
     private final ScheduledExecutorService timer =
             Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().daemon().name("toss-ws").factory());
     private volatile Consumer<Trade> listener = t -> {};
@@ -67,10 +70,12 @@ public final class TossPriceStream implements PriceStream, AutoCloseable {
     /** opener: 토큰과 listener로 연결을 연다. 시험은 가짜 소켓을 넣는다. */
     public TossPriceStream(Supplier<String> token,
                            BiFunction<String, WebSocket.Listener, CompletableFuture<WebSocket>> opener,
-                           Duration firstDelay) {
+                           Duration firstDelay,
+                           Duration sendTimeout) {
         this.token = token;
         this.opener = opener;
         this.firstDelay = firstDelay;
+        this.sendTimeout = sendTimeout;
         timer.scheduleAtFixedRate(this::ping, PING_EVERY.toSeconds(), PING_EVERY.toSeconds(), TimeUnit.SECONDS);
     }
 
@@ -151,12 +156,17 @@ public final class TossPriceStream implements PriceStream, AutoCloseable {
         if (send(json)) declared = json;
     }
 
+    /** 잠금을 쥐고 보내므로 오래 기다리지 않는다. 답이 없으면 끊긴 연결로 보고 다시 연결한다. */
     private synchronized boolean send(String text) {
         WebSocket ws = socket;
         try {
-            ws.sendText(text, true).join();
+            ws.sendText(text, true).get(sendTimeout.toMillis(), TimeUnit.MILLISECONDS);
             return true;
-        } catch (CompletionException | IllegalStateException e) {
+        } catch (ExecutionException | TimeoutException | IllegalStateException e) {
+            lost(ws);
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             lost(ws);
             return false;
         }

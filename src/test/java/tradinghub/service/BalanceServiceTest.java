@@ -93,6 +93,19 @@ class BalanceServiceTest {
     }
 
     @Test
+    void 환율_조회가_실패해도_잔고는_보여주고_달러는_합계에서_빠진다() {
+        ExchangeRates limited = () -> { throw new BrokerException(Reason.RATE_LIMITED, "한도 초과"); };
+
+        var total = new BalanceService(List.of(FakeBroker.krwAndUsd()), Optional.of(limited)).consolidated();
+
+        assertThat(total.accounts()).hasSize(1);
+        assertThat(total.failedBrokers()).extracting(FailedBroker::reason).containsExactly(Reason.RATE_LIMITED);
+        assertThat(total.usdToKrw()).isNull();
+        assertThat(total.usdTotal().amount()).isEqualByComparingTo("2201.45");
+        assertThat(total.grandTotalKrw()).isEqualTo(total.krwTotal());
+    }
+
+    @Test
     void 달러가_있는데_환율_출처가_없으면_예외() {
         var service = new BalanceService(List.of(FakeBroker.krwAndUsd()), Optional.empty());
 

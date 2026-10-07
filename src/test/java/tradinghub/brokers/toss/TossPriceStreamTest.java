@@ -19,8 +19,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static tradinghub.core.Currency.KRW;
 import static tradinghub.core.Currency.USD;
 
@@ -35,16 +37,17 @@ class TossPriceStreamTest {
     List<FakeSocket> sockets = new CopyOnWriteArrayList<>();
     ConcurrentLinkedQueue<Throwable> handshakeFailures = new ConcurrentLinkedQueue<>();
     List<Trade> trades = new CopyOnWriteArrayList<>();
+    AtomicReference<CompletableFuture<WebSocket>> stuckSend = new AtomicReference<>();
 
     TossPriceStream stream = new TossPriceStream(() -> "test-token", (token, listener) -> {
         usedTokens.add(token);
         Throwable failure = handshakeFailures.poll();
         if (failure != null) return CompletableFuture.failedFuture(failure);
-        var socket = new FakeSocket(listener);
+        var socket = new FakeSocket(listener, stuckSend);
         sockets.add(socket);
         listener.onOpen(socket);
         return CompletableFuture.completedFuture(socket);
-    }, Duration.ofMillis(1));
+    }, Duration.ofMillis(1), Duration.ofMillis(200));
 
     {
         stream.onTrade(trades::add);
@@ -152,6 +155,21 @@ class TossPriceStreamTest {
     }
 
     @Test
+    void 보내기가_멈추면_끊긴_것으로_보고_다시_연결한다() {
+        var stuck = new CompletableFuture<WebSocket>();
+        stuckSend.set(stuck); // 첫 보내기가 답 없이 멈춘다
+
+        try {
+            assertTimeoutPreemptively(Duration.ofSeconds(2), () -> stream.watch(List.of(SAMSUNG)));
+        } finally {
+            stuck.complete(null); // 고치기 전에는 잠금을 쥔 채 멈춰 있으므로 풀어 준다
+        }
+
+        assertThat(sockets.getFirst().aborted).isTrue();
+        eventually(() -> sockets.size() == 2 && !sockets.get(1).sent.isEmpty());
+    }
+
+    @Test
     void 다시_연결_대기는_두_배씩_늘고_1분에서_멈춘다() {
         Duration first = Duration.ofSeconds(1);
         // 흔들림(jitter)으로 최대 20% 더 기다린다
@@ -197,10 +215,12 @@ class TossPriceStreamTest {
 
         final WebSocket.Listener listener;
         final List<String> sent = new CopyOnWriteArrayList<>();
+        final AtomicReference<CompletableFuture<WebSocket>> stuckSend;
         volatile boolean aborted;
 
-        FakeSocket(WebSocket.Listener listener) {
+        FakeSocket(WebSocket.Listener listener, AtomicReference<CompletableFuture<WebSocket>> stuckSend) {
             this.listener = listener;
+            this.stuckSend = stuckSend;
         }
 
         void receive(String recording) {
@@ -217,6 +237,8 @@ class TossPriceStreamTest {
 
         @Override
         public CompletableFuture<WebSocket> sendText(CharSequence data, boolean last) {
+            var stuck = stuckSend.getAndSet(null);
+            if (stuck != null) return stuck;
             sent.add(data.toString());
             return CompletableFuture.completedFuture(this);
         }

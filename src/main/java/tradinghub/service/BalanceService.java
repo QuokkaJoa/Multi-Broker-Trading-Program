@@ -45,26 +45,41 @@ public class BalanceService {
                 }
                 accounts.addAll(mine);
             } catch (RuntimeException e) {
-                // 증권사 하나가 실패해도 나머지는 보여준다. 메시지에 비밀값이 섞일 수 있어 이유와 예외 종류만 남긴다
-                String name = broker.getClass().getSimpleName();
-                Reason reason = e instanceof BrokerException b ? b.reason() : Reason.OTHER;
-                log.warn("{} 조회 실패: {} ({})", name, reason, e.getClass().getName());
-                failed.add(new FailedBroker(name, reason));
+                // 증권사 하나가 실패해도 나머지는 보여준다
+                failed.add(failure(broker, e));
             }
         }
 
-        return combine(accounts, failed, () -> rates
-                .orElseThrow(() -> new IllegalStateException("달러 자산이 있는데 환율 출처가 없음")).usdToKrw());
+        return combine(accounts, failed, () -> rate(failed));
     }
 
-    /** 계좌들을 원화로 합친다. 환율은 달러가 있을 때만 묻는다. */
+    /** 환율이 실패해도 잔고는 보여준다. 실패를 failed에 더하고 null (combine이 달러를 합계에서 뺀다). */
+    private BigDecimal rate(List<FailedBroker> failed) {
+        ExchangeRates source = rates.orElseThrow(() -> new IllegalStateException("달러 자산이 있는데 환율 출처가 없음"));
+        try {
+            return source.usdToKrw();
+        } catch (RuntimeException e) {
+            failed.add(failure(source, e));
+            return null;
+        }
+    }
+
+    /** 메시지에 비밀값이 섞일 수 있어 이유와 예외 종류만 남긴다. */
+    private static FailedBroker failure(Object source, RuntimeException e) {
+        String name = source.getClass().getSimpleName();
+        Reason reason = e instanceof BrokerException b ? b.reason() : Reason.OTHER;
+        log.warn("{} 조회 실패: {} ({})", name, reason, e.getClass().getName());
+        return new FailedBroker(name, reason);
+    }
+
+    /** 계좌들을 원화로 합친다. 환율은 달러가 있을 때만 묻고, 환율이 없으면(null) 달러는 합계에서 빠진다. */
     static ConsolidatedBalance combine(List<AccountBalance> accounts, List<FailedBroker> failed, Supplier<BigDecimal> usdToKrw) {
         Money krw = sum(accounts, KRW);
         Money usd = sum(accounts, USD);
-        if (usd.amount().signum() == 0) {
+        BigDecimal rate = usd.amount().signum() == 0 ? null : usdToKrw.get();
+        if (rate == null) {
             return new ConsolidatedBalance(accounts, failed, krw, usd, null, Money.zero(KRW), krw);
         }
-        BigDecimal rate = usdToKrw.get();
         Money usdInKrw = new Money(usd.amount().multiply(rate).setScale(0, RoundingMode.HALF_UP), KRW);
         return new ConsolidatedBalance(accounts, failed, krw, usd, rate, usdInKrw, krw.plus(usdInKrw));
     }

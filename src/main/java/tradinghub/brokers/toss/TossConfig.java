@@ -8,9 +8,12 @@ import tradinghub.core.EnvFileSecretStore;
 
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.WebSocket;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.InstantSource;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 
 /** dryrun: 토스 실계좌 조회. 비밀값은 프로젝트 폴더 .env (decisions/006). */
 @Configuration
@@ -42,11 +45,16 @@ class TossConfig {
     /** 연결은 볼 종목이 생길 때 연다. 토큰은 REST와 같은 것을 쓴다. */
     @Bean
     TossPriceStream tossPrices(TossTokens tokens) {
+        return new TossPriceStream(() -> tokens.withToken(token -> token), opener(WS_URL, Duration.ofSeconds(10)), Duration.ofSeconds(1),
+                Duration.ofSeconds(5));
+    }
+
+    /** 연결이 답 없이 걸려 버리면 timeout 뒤 실패시킨다 (그래야 다시 연결한다). 맥이 잠들었다 깬 직후 등. */
+    static BiFunction<String, WebSocket.Listener, CompletableFuture<WebSocket>> opener(URI url, Duration timeout) {
         HttpClient http = HttpClient.newHttpClient();
-        return new TossPriceStream(() -> tokens.withToken(token -> token),
-                (token, listener) -> http.newWebSocketBuilder()
-                        .header("Authorization", "Bearer " + token)
-                        .buildAsync(WS_URL, listener),
-                Duration.ofSeconds(1));
+        return (token, listener) -> http.newWebSocketBuilder()
+                .header("Authorization", "Bearer " + token)
+                .connectTimeout(timeout)
+                .buildAsync(url, listener);
     }
 }
