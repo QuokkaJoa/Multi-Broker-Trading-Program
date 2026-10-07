@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>trading-hub</title>
   <script src="/htmx-2.0.11.min.js"></script>
+  <script src="/htmx-ext-sse-2.2.4.min.js"></script>
   <style>
     body { font-family: -apple-system, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; color: #222; }
     .total { font-size: 2rem; font-weight: 700; margin: .25rem 0; }
@@ -16,7 +17,9 @@
   </style>
 </head>
 <body>
-<main id="balance" hx-get="/" hx-select="#balance" hx-trigger="every 30s" hx-swap="outerHTML">
+<!-- SSE 연결은 바뀌지 않는 바깥에 둔다 (#balance가 바뀔 때마다 다시 연결하지 않게) -->
+<div hx-ext="sse" sse-connect="/events">
+<main id="balance" hx-get="/" hx-select="#balance" hx-trigger="every 30s, sse:changed throttle:1s" hx-swap="outerHTML">
 
   <div class="failed" th:each="f : ${b.failedBrokers}">
     <strong th:text="${f.broker}">증권사</strong> 조회 실패:
@@ -38,7 +41,9 @@
       (환율 <th:block th:text="${#numbers.formatDecimal(b.usdToKrw, 1, 'COMMA', 2, 'POINT')}"/> 매매기준율
       → <th:block th:replace="~{money :: money(${b.usdInKrw})}"/>)
     </th:block>
-    · 조회 시각 <span th:text="${fetchedAt}">00:00:00</span> (30초마다)
+    <br>
+    <strong th:if="${tradeAt != null}">실시간 추정 (체결 <span th:text="${tradeAt}">00:00:00</span>) ·</strong>
+    스냅샷 <span th:text="${snapshotAt}">00:00:00</span> (30초마다 증권사 값으로 맞춤)
   </p>
 
   <section th:each="a : ${b.accounts}">
@@ -64,5 +69,6 @@
     </table>
   </section>
 </main>
+</div>
 </body>
 </html>

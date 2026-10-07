@@ -9,16 +9,14 @@ import tradinghub.brokers.BrokerException.Reason;
 import tradinghub.brokers.ExchangeRates;
 import tradinghub.core.AccountId;
 import tradinghub.core.Currency;
-import tradinghub.core.Holding;
 import tradinghub.core.Money;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static tradinghub.core.Currency.KRW;
 import static tradinghub.core.Currency.USD;
@@ -55,25 +53,24 @@ public class BalanceService {
             }
         }
 
+        return combine(accounts, failed, () -> rates
+                .orElseThrow(() -> new IllegalStateException("달러 자산이 있는데 환율 출처가 없음")).usdToKrw());
+    }
+
+    /** 계좌들을 원화로 합친다. 환율은 달러가 있을 때만 묻는다. */
+    static ConsolidatedBalance combine(List<AccountBalance> accounts, List<FailedBroker> failed, Supplier<BigDecimal> usdToKrw) {
         Money krw = sum(accounts, KRW);
         Money usd = sum(accounts, USD);
         if (usd.amount().signum() == 0) {
             return new ConsolidatedBalance(accounts, failed, krw, usd, null, Money.zero(KRW), krw);
         }
-        BigDecimal rate = rates.orElseThrow(() -> new IllegalStateException("달러 자산이 있는데 환율 출처가 없음"))
-                .usdToKrw();
+        BigDecimal rate = usdToKrw.get();
         Money usdInKrw = new Money(usd.amount().multiply(rate).setScale(0, RoundingMode.HALF_UP), KRW);
         return new ConsolidatedBalance(accounts, failed, krw, usd, rate, usdInKrw, krw.plus(usdInKrw));
     }
 
     private static AccountBalance balance(Broker broker, AccountId id) {
-        List<Money> cash = broker.cash(id);
-        List<Holding> holdings = broker.holdings(id);
-
-        Map<Currency, Money> totals = new EnumMap<>(Currency.class);
-        cash.forEach(m -> totals.merge(m.currency(), m, Money::plus));
-        holdings.forEach(h -> totals.merge(h.marketValue().currency(), h.marketValue(), Money::plus));
-        return new AccountBalance(id, cash, holdings, totals);
+        return AccountBalance.of(id, broker.cash(id), broker.holdings(id));
     }
 
     private static Money sum(List<AccountBalance> accounts, Currency currency) {
