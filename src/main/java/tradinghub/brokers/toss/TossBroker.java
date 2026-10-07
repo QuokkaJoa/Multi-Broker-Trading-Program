@@ -53,8 +53,11 @@ public final class TossBroker implements Broker {
     @Override
     public List<Holding> holdings(AccountId account) {
         return get(account, "/api/v1/holdings", HoldingsResponse.class).result().items().stream()
-                .map(i -> new Holding(i.symbol(), i.name(), i.quantity(),
-                        new Money(i.marketValue().amount(), Currency.valueOf(i.currency()))))
+                .map(i -> {
+                    var currency = Currency.valueOf(i.currency());
+                    return new Holding(i.symbol(), i.name(), i.quantity(),
+                            new Money(i.lastPrice(), currency), new Money(i.marketValue().amount(), currency));
+                })
                 .toList();
     }
 
@@ -80,7 +83,8 @@ public final class TossBroker implements Broker {
 
     private record Holdings(List<Item> items) {}
 
-    private record Item(String symbol, String name, String currency, BigDecimal quantity, ItemValue marketValue) {}
+    private record Item(String symbol, String name, String currency, BigDecimal quantity, BigDecimal lastPrice,
+                        ItemValue marketValue) {}
 
     private record ItemValue(BigDecimal amount) {}
 

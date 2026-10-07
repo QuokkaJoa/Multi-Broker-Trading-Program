@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>trading-hub</title>
+  <script src="/htmx-2.0.11.min.js"></script>
+  <style>
+    body { font-family: -apple-system, sans-serif; margin: 2rem auto; max-width: 960px; padding: 0 1rem; color: #222; }
+    .total { font-size: 2rem; font-weight: 700; margin: .25rem 0; }
+    .muted { color: #777; font-size: .9rem; }
+    .failed { background: #fdecea; color: #a1281c; padding: .5rem 1rem; border-radius: 6px; }
+    table { border-collapse: collapse; width: 100%; margin: .5rem 0 2rem; }
+    th, td { padding: .35rem .5rem; border-bottom: 1px solid #eee; text-align: right; }
+    th:first-child, td:first-child { text-align: left; }
+  </style>
+</head>
+<body>
+<main id="balance" hx-get="/" hx-select="#balance" hx-trigger="every 30s" hx-swap="outerHTML">
+
+  <div class="failed" th:each="f : ${b.failedBrokers}">
+    <strong th:text="${f.broker}">증권사</strong> 조회 실패:
+    <th:block th:switch="${f.reason.name()}">
+      <span th:case="'IP_BLOCKED'">IP 차단 — 증권사 사이트에서 지금 공인 IP를 허용 목록에 넣어 주세요</span>
+      <span th:case="'BAD_KEY'">키 틀림 — 비밀값 파일의 앱키·시크릿을 확인해 주세요</span>
+      <span th:case="'RATE_LIMITED'">호출 한도 초과 — 잠시 뒤 다시 조회합니다</span>
+      <span th:case="*">알 수 없는 오류 — 로그를 확인해 주세요</span>
+    </th:block>
+    (합계에서 빠짐)
+  </div>
+
+  <p class="muted">원화 총합</p>
+  <p class="total" th:insert="~{money :: money(${b.grandTotalKrw})}">0원</p>
+  <p class="muted">
+    원화 <th:block th:replace="~{money :: money(${b.krwTotal})}"/>
+    · 달러 <th:block th:replace="~{money :: money(${b.usdTotal})}"/>
+    <th:block th:if="${b.usdToKrw != null}">
+      (환율 <th:block th:text="${#numbers.formatDecimal(b.usdToKrw, 1, 'COMMA', 2, 'POINT')}"/> 매매기준율
+      → <th:block th:replace="~{money :: money(${b.usdInKrw})}"/>)
+    </th:block>
+    · 조회 시각 <span th:text="${fetchedAt}">00:00:00</span> (30초마다)
+  </p>
+
+  <section th:each="a : ${b.accounts}">
+    <h2 th:text="${a.account}">계좌</h2>
+    <p>
+      예수금
+      <th:block th:each="c, s : ${a.cash}"><th:block th:replace="~{money :: money(${c})}"/><th:block th:unless="${s.last}"> · </th:block></th:block>
+      <span class="muted">/ 계좌 합계</span>
+      <th:block th:each="t, s : ${a.totals.values()}"><th:block th:replace="~{money :: money(${t})}"/><th:block th:unless="${s.last}"> · </th:block></th:block>
+      <span class="muted">(예수금 + 평가금)</span>
+    </p>
+    <table>
+      <thead><tr><th>종목</th><th>수량</th><th>현재가</th><th>평가금</th><th>통화</th></tr></thead>
+      <tbody>
+      <tr th:each="h : ${a.holdings}">
+        <td><span th:text="${h.name}">이름</span> <span class="muted" th:text="${h.symbol}">코드</span></td>
+        <td th:text="${h.quantity.stripTrailingZeros().toPlainString()}">0</td>
+        <td th:insert="~{money :: money(${h.price})}">0</td>
+        <td th:insert="~{money :: money(${h.marketValue})}">0</td>
+        <td th:text="${h.marketValue.currency}">KRW</td>
+      </tr>
+      </tbody>
+    </table>
+  </section>
+</main>
+</body>
+</html>

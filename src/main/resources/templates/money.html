@@ -1,0 +1,5 @@
+<!-- 금액 한 칸. 원은 원 단위, 달러는 센트까지 -->
+<th:block th:fragment="money(m)"
+          th:text="${m.currency.name() == 'KRW'}
+                   ? ${#numbers.formatDecimal(m.amount, 1, 'COMMA', 0, 'POINT') + '원'}
+                   : ${'$' + #numbers.formatDecimal(m.amount, 1, 'COMMA', 2, 'POINT')}"></th:block>

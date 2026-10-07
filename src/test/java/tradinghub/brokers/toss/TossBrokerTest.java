@@ -60,11 +60,11 @@ class TossBrokerTest {
     }
 
     @Test
-    void 보유는_평가금을_거래_통화로() {
+    void 보유는_현재가와_평가금을_거래_통화로() {
         var id = broker.accounts().getFirst();
         assertThat(broker.holdings(id)).containsExactly(
-                new Holding("005930", "삼성전자", new BigDecimal("100"), Money.of("7200000", KRW)),
-                new Holding("AAPL", "Apple Inc.", new BigDecimal("10"), Money.of("1785", USD)));
+                new Holding("005930", "삼성전자", new BigDecimal("100"), Money.of("72000", KRW), Money.of("7200000", KRW)),
+                new Holding("AAPL", "Apple Inc.", new BigDecimal("10"), Money.of("178.5", USD), Money.of("1785", USD)));
     }
 
     @Test
