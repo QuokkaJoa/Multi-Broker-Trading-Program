@@ -1,5 +1,5 @@
 # 토스증권
-출처: https://developers.tossinvest.com/llms.txt → openapi.json, overview.md, faq.md (2026-10-07 확인, 명세 v1.2.19)
+출처: https://developers.tossinvest.com/llms.txt → openapi.json, overview.md, faq.md (2026-10-07 확인, 명세 v1.2.21)
 
 - 인증: OAuth 2.0 Client Credentials. 키는 WTS 설정 > Open API에서 직접 발급
 - 토큰은 클라이언트당 1개만 유효하다. 새로 발급하면 이전 토큰이 바로 `401 token-revoked`. 앱 실행 중에 networkTest가 토큰을 새로 받으면 앱 토큰이 죽는다
