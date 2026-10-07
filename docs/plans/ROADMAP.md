@@ -3,9 +3,9 @@
 규칙: 자세한 계획서는 각 단계를 시작할 때 `plans/active`에 쓴다. 끝나면 `plans/done`으로 옮긴다.
 
 - 0단계 뼈대 — 가짜 증권사로 조회가 끝까지 돈다 (완료 2026-10-07, plans/done/phase-0-skeleton.md)
-- 1단계 토스 조회 + 실시간 첫 화면 — 토스 종합매매 계좌 잔고·보유를 dryrun으로 조회해 화면에 보여준다. 평가금은 웹소켓 체결가로 실시간 (plans/active/phase-1-toss-realtime.md).
+- 1단계 토스 조회 + 실시간 첫 화면 — 토스 종합매매 계좌 잔고·보유를 dryrun으로 조회해 화면에 보여준다. 평가금은 웹소켓 체결가로 실시간 (완료 2026-10-08, plans/done/phase-1-toss-realtime.md).
   .env SecretStore 연결 (decisions/006), networkTest(사람만 실행), 화면 기술은 decisions/004
-  항목 10개 끝 (2026-10-08). 남은 사람 확인: 10/10(토) 장 마감 dryrun 비교 (예약해 둠) → 끝나면 plans/done으로
+  ⏳ 10/10(토) 예약 작업: 장 마감 dryrun 숫자 비교 → 결과를 계획서 진행 기록에 적은 뒤 이 줄을 지운다
 - 2단계 키움 ISA 조회 + 통합 잔고 — 키움 모의투자 → dryrun 조회, 원/달러 합산.
   두 번째 증권사로 공통 약속이 맞는지 검증. 슬랙 알림(조회 오류)
 
