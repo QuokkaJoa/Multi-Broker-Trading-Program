@@ -18,11 +18,9 @@
 화면, 실제 증권사 연결, 슬랙, 주문 전부
 
 ## 사람이 확인할 것
-- 키움 포털에서 ISA 계좌 REST 조회 지원 여부, 모의투자 ISA 여부
-- 집 공인 IP가 고정인지
-- 훅의 빈틈 두 가지 (막을지 결정 필요)
-  - `application.properties`의 `spring.profiles.default`를 바꾼 뒤 `./gradlew bootRun`을 하면 못 막는다 (명령어 글자만 보기 때문)
-  - 반대로 명령어 안에 해당 단어가 글자로만 있어도 막는다 (예: 이 문서를 고치는 셸 명령)
+- [x] 키움 ISA: 포털에 일반·ISA 계좌 둘 다 등록됨. 실제 조회는 2단계 dryrun에서 확인. 모의투자에는 ISA가 없다 (docs/brokers/kiwoom.md)
+- [x] 집 공인 IP: 바뀐다 → 바뀌면 포털에서 다시 등록한다
+- [x] 훅의 빈틈 두 가지 → 둘 다 고침 (아래 진행 기록)
 
 ## 진행 기록
 - 2026-10-07: 기능마다 시험을 먼저 써서 실패를 보고(red) 구현해 통과(green)시켰다
@@ -52,3 +50,8 @@
   - 통합 잔고는 증권사 하나가 실패해도 나머지를 보여주고 `failedBrokers`에 이름을 남긴다. 로그에는 예외 종류만 남긴다 (메시지에 비밀값이 섞일 수 있어서)
   - 환율은 달러 자산이 있을 때만 묻는다. `ExchangeRates`는 없어도 앱이 뜬다. 달러가 있는데 환율 출처가 없으면 예외
   - Host 검사는 `getServerName()`이 아니라 Host 헤더를 직접 본다. 헤더가 없으면 403
+- 훅 보강 (2026-10-07, 사람이 승인)
+  - 빈틈 1: 명령에 프로필이 없어도 `src/main/resources/application*`(properties·yml)의 active·default·include에 mock·dryrun·live가 있으면 막는다. `./gradlew test`도 앱을 띄우므로 같이 막힌다
+  - 빈틈 2: gradle·java·mvn·bootRun을 실행하는 명령만 검사한다. 문서에 글자만 쓰는 명령은 막지 않는다
+  - 훅이 명령을 읽지 못하면 입력 전체를 검사한다 (막는 쪽으로 실패)
+  - 시험: `bash .claude/hooks/block-live.test.sh` — 고치기 전 6개 실패 확인 → 13개 전부 통과
