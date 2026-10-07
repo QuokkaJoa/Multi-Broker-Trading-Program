@@ -3,6 +3,7 @@
 
 - 인증: OAuth 2.0 Client Credentials. 키는 WTS 설정 > Open API에서 직접 발급
 - 토큰은 클라이언트당 1개만 유효하다. 새로 발급하면 이전 토큰이 바로 `401 token-revoked`. 앱 실행 중에 networkTest가 토큰을 새로 받으면 앱 토큰이 죽는다
+- 401 중 `expired-token`·`token-revoked`만 재발급으로 풀린다. `invalid-token`·`login-user-not-found`는 다시 받아도 안 풀리므로 재시도하지 않는다 (`TossTokens`)
 - 허용 IP에서만 호출된다. 그 밖은 403. 공인 IP가 바뀌면 막힌다
 - 모의투자·샌드박스 없음 → mock 모드에서 토스는 fake
 - 계좌 목록은 종합매매(`BROKERAGE`)만 나온다. 계좌·보유·주문 API는 `X-Tossinvest-Account: {accountSeq}` 헤더 필요

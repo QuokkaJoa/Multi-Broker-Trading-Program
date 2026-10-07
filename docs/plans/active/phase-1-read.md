@@ -26,7 +26,7 @@
 한 항목 = 대화 한 번. 위에서부터 순서대로.
 
 - [x] 1. .env SecretStore — 프로젝트 폴더 `.env`의 `이름=값`을 읽는 `EnvFileSecretStore` (decisions/006). 없는 이름·파일이면 이름만 담은 `IllegalStateException`. `.gitignore`에 `.env` (시험이 지킴), Claude는 `.env`를 열지 못함 (훅)
-- [ ] 2. 토스 토큰 — 녹화 응답(공식 명세의 예시로 만든 것)으로: 토큰 발급, 만료 전까지 재사용, 401 `expired-token`·`token-revoked`이면 한 번만 다시 발급. 토큰은 메모리에만. HTTP는 Spring `RestClient` (새 의존성 없음)
+- [x] 2. 토스 토큰 — 녹화 응답(공식 명세의 예시로 만든 것)으로: 토큰 발급, 만료 전까지 재사용, 401 `expired-token`·`token-revoked`이면 한 번만 다시 발급. 토큰은 메모리에만. HTTP는 Spring `RestClient` (새 의존성 없음)
 - [ ] 3. 토스 어댑터 조회 — `TossBroker`가 `Broker` contract 시험 통과: 계좌 목록(`AccountId`=`toss-`+끝 4자리, `accountSeq`는 어댑터 안에만), 보유(→ `Holding`), 예수금(buying-power KRW·USD → `Money` 둘)
 - [ ] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
 - [ ] 5. 오류를 알아보게 — 403 IP 차단, 401 키 틀림, 429 한도 초과를 각각 구분되는 예외로. 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인. 통합 잔고 `failedBrokers`에 이유 종류가 남는다
@@ -56,7 +56,7 @@
 ## 사람이 할 일
 - [x] 토스 WTS → 설정 > Open API에서 `client_id`·`client_secret` 발급
 - [x] 같은 화면 아래 "허용 IP 관리"에 집 공인 IP 등록. IP가 바뀌면 다시 등록
-- [ ] 프로젝트 폴더에 `.env` 만들기 (Claude는 못 엶): `toss.client-id=...`, `toss.client-secret=...` 두 줄. 그 뒤 `chmod 600 .env`
+- [x] 프로젝트 폴더에 `.env` 만들기 (Claude는 못 엶): `toss.client-id=...`, `toss.client-secret=...` 두 줄. 그 뒤 `chmod 600 .env`
 - [ ] 커밋 전 `git status`에 `.env`가 안 보이는지 한 번 확인. 실수로 올라가면 토스 WTS에서 키를 곧바로 재발급
 - [ ] 항목 6 뒤: dryrun으로 띄워 `.env` 값으로 토큰이 발급되는지 확인
 - [ ] 항목 6·8 뒤: `./gradlew networkTest` 실행 (dryrun 앱을 끈 상태에서 — 토큰이 하나뿐이라 서로 죽인다). 8은 장 중에 (체결이 와야 하므로)
@@ -95,6 +95,13 @@ Claude가 보여줄 것
   - 훅 시험에 `.env` 4가지 추가 → 3개 실패 확인 → 훅 고친 뒤 전부 통과
   - `./gradlew test` 전부 통과
   - `.env.example` 견본은 권한 설정(`Read(./.env.*)`)이 Claude의 쓰기도 막아 만들지 않았다. 형식은 decisions/006에 있다
+- 2026-10-07 항목 2
+  - 공식 명세(openapi.json v1.2.21)로 확인: 토큰 응답은 공통 envelope 없이 OAuth2 표준(`access_token`, `expires_in` 86400 예시). API의 401 본문은 `{"error":{"code":...}}`
+  - 녹화 4개(토큰, 401 expired-token·token-revoked·invalid-token)를 명세 예시 값 그대로 `src/test/resources/recordings/toss/`에 둠
+  - `TossTokensTest` 6개를 먼저 씀 → 빈 구현으로 6개 실패 확인 → `TossTokens` 구현 뒤 통과
+  - 만료 1분 전부터 새로 발급. 재발급은 expired-token·token-revoked일 때만 한 번. invalid-token 등 다른 401은 그대로 던짐
+  - 두 스레드가 같이 401을 받으면 먼저 온 쪽만 재발급 (토큰이 1개라 겹쳐 받으면 서로 죽임)
+  - `./gradlew test` 전부 통과 (53개)
 
 ## 결정 기록
 - 2026-10-07 (사람이 정함)
