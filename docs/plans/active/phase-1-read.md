@@ -28,7 +28,7 @@
 - [x] 1. .env SecretStore — 프로젝트 폴더 `.env`의 `이름=값`을 읽는 `EnvFileSecretStore` (decisions/006). 없는 이름·파일이면 이름만 담은 `IllegalStateException`. `.gitignore`에 `.env` (시험이 지킴), Claude는 `.env`를 열지 못함 (훅)
 - [x] 2. 토스 토큰 — 녹화 응답(공식 명세의 예시로 만든 것)으로: 토큰 발급, 만료 전까지 재사용, 401 `expired-token`·`token-revoked`이면 한 번만 다시 발급. 토큰은 메모리에만. HTTP는 Spring `RestClient` (새 의존성 없음)
 - [x] 3. 토스 어댑터 조회 — `TossBroker`가 `Broker` contract 시험 통과: 계좌 목록(`AccountId`=`toss-`+끝 4자리, `accountSeq`는 어댑터 안에만), 보유(→ `Holding`), 예수금(buying-power KRW·USD → `Money` 둘)
-- [ ] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
+- [x] 4. 토스 환율 — `ExchangeRates` 구현 (`midRate`). 1분 안에는 다시 묻지 않는다
 - [ ] 5. 오류를 알아보게 — 403 IP 차단, 401 키 틀림, 429 한도 초과를 각각 구분되는 예외로. 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인. 통합 잔고 `failedBrokers`에 이유 종류가 남는다
 - [ ] 6. dryrun 설정 + networkTest (REST) — `application-dryrun.properties`(토스 어댑터 켜기), `./gradlew networkTest` 작업(`@Tag("network")`만 실행). 시험 내용: 실서버 응답의 필드 모양이 녹화와 같은지 (값은 비교 안 함). 실서버 응답은 git 제외 폴더에 저장
 - [ ] 7. 첫 화면 (스냅샷) — Thymeleaf + htmx (decisions/004). 원화 총합, 계좌별 예수금·평가금, 보유 종목 표(종목·수량·현재가·평가금·통화), 환율과 조회 시각, 실패한 증권사 표시. 30초마다 REST로 다시 조회(htmx). htmx는 파일로 넣는다 (외부 CDN 안 씀). fake로 띄워 확인
@@ -108,6 +108,11 @@ Claude가 보여줄 것
   - 계좌 API 시험은 `X-Tossinvest-Account` 헤더가 있어야만 응답하게 해서 accountSeq 전달도 확인
   - 구조 시험 `어디에도_주문_메서드가_없다`가 `buyingPower`·`cashBuyingPower` 이름(조회 전용)에 걸림 → 사람이 정한 대로 규칙은 두고 이름만 `cashOf`·`cash`로 바꿈 (결정 기록)
   - `./gradlew test` 전부 통과 (60개)
+- 2026-10-07 항목 4
+  - 공식 명세(openapi.json v1.2.21)로 응답 모양 확인. 녹화 `exchange-rate.json`은 명세 예시 값 그대로
+  - `TossExchangeRatesTest` 3개(midRate 사용, 59초 안 재사용, 1분 뒤 재조회)를 먼저 씀 → 빈 구현으로 3개 실패 확인 → `TossExchangeRates` 구현 뒤 통과
+  - 응답의 `validUntil`은 쓰지 않고 받은 시각부터 1분 동안 재사용. 앱 연결(빈 등록)은 항목 6에서
+  - `./gradlew test` 전부 통과 (63개)
 
 ## 결정 기록
 - 2026-10-07 (사람이 정함)
