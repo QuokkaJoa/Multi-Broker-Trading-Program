@@ -60,10 +60,10 @@ class KiwoomBrokerTest {
     }
 
     @Test
-    void 계좌는_kiwoom과_계좌번호_끝_4자리_이름은_키움_중개형ISA() {
+    void 계좌는_kiwoom과_앞_8자리의_끝_4자리_이름은_키움_중개형ISA() { // acctNo 뒤 2자리는 키움 분류값. 앱 번호는 앞 8자리 (10/15 dryrun)
         expect("ka00001", manyTimes()).andRespond(ok("ka00001.json"));
 
-        assertThat(broker.accounts()).containsExactly(new AccountId("kiwoom-6789", "키움 중개형ISA"));
+        assertThat(broker.accounts()).containsExactly(new AccountId("kiwoom-4567", "키움 중개형ISA"));
     }
 
     @Test
