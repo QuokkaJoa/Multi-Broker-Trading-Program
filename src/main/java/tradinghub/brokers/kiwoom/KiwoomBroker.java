@@ -44,7 +44,10 @@ public final class KiwoomBroker implements Broker {
         return List.of(new Money(new BigDecimal(body.path("entr").asString()), KRW));
     }
 
-    /** kt00018 합산 조회. 연속 조회로 끝까지 읽고, 같은 종목 여러 줄은 수량·평가금을 더한다 (현재가는 첫 줄). */
+    /**
+     * kt00018 합산 조회. 연속 조회로 끝까지 읽고, 같은 종목 여러 줄은 수량·평가금·비용을 더한다 (현재가는 첫 줄).
+     * 비용은 sum_cmsn(예상 매입·매도 수수료) + tax. 키움 앱 "평가금액" = evlt_amt − 비용 (10/15 dryrun).
+     */
     @Override
     public List<Holding> holdings(AccountId account) {
         check(account);
@@ -61,9 +64,10 @@ public final class KiwoomBroker implements Broker {
             var quantity = number(r, "rmnd_qty");
             if (quantity.signum() == 0) continue; // 오늘 다 판 종목이 0주로 남을 수 있다
             var h = new Holding(symbol(r.path("stk_cd").asString()), r.path("stk_nm").asString().strip(), quantity,
-                    new Money(number(r, "cur_prc"), KRW), new Money(number(r, "evlt_amt"), KRW));
+                    new Money(number(r, "cur_prc"), KRW), new Money(number(r, "evlt_amt"), KRW),
+                    new Money(number(r, "sum_cmsn").add(number(r, "tax")), KRW));
             merged.merge(h.symbol(), h, (a, b) -> new Holding(a.symbol(), a.name(), a.quantity().add(b.quantity()),
-                    a.price(), a.marketValue().plus(b.marketValue())));
+                    a.price(), a.marketValue().plus(b.marketValue()), a.costs().plus(b.costs())));
         }
         return List.copyOf(merged.values());
     }

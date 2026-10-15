@@ -41,6 +41,15 @@ class BalanceServiceTest {
     }
 
     @Test
+    void 앱_기준_평가금은_원화_평가금에서_예상_수수료_세금을_뺀다() { // 키움 앱 "평가금액" (2단계 결정 10/15)
+        var accounts = service.consolidated().accounts();
+
+        assertThat(accounts.get(0).krwCosts()).isEqualTo(Money.of("2040", KRW)); // 가짜 ISA 1,140 + 900
+        assertThat(accounts.get(0).krwValueAfterCosts()).isEqualTo(Money.of("677960", KRW)); // 380,000 + 300,000 − 2,040
+        assertThat(accounts.get(1).krwCosts()).isEqualTo(Money.zero(KRW)); // 토스 흉내는 비용을 안 준다
+    }
+
+    @Test
     void 달러는_환율로_원화_환산해_원_단위로_반올림한다() {
         var total = service.consolidated();
 

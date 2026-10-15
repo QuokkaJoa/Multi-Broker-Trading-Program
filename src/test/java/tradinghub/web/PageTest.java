@@ -47,6 +47,7 @@ class PageTest {
         assertThat(html).contains("1,234,567원", "$1,000.50"); // 예수금
         assertThat(html).contains("Vanguard S&amp;P 500", "1.5", "$500.50", "$750.75"); // 종목·수량·현재가·평가금
         assertThat(html).contains("1,385.20"); // 환율
+        assertThat(html).contains("앱 기준 평가금", "677,960원"); // 가짜 ISA만 예상 수수료·세금이 있다
         assertThat(html).containsPattern("스냅샷\\D*\\d{2}:\\d{2}:\\d{2}");
     }
 

@@ -77,8 +77,9 @@ class KiwoomBrokerTest {
     void 보유는_접두어를_떼고_같은_종목_여러_줄을_합친다() {
         expectAll();
 
-        assertThat(broker.holdings(broker.accounts().getFirst())).containsExactly(
-                new Holding("005930", "삼성전자", new BigDecimal("11"), Money.of("59000", KRW), Money.of("857000", KRW)));
+        // 예상 비용 = sum_cmsn + tax: (70 + 318) + (350 + 1224). 앱 "평가금액"은 평가금에서 이것을 뺀 값 (10/15 dryrun)
+        assertThat(broker.holdings(broker.accounts().getFirst())).containsExactly(new Holding("005930", "삼성전자",
+                new BigDecimal("11"), Money.of("59000", KRW), Money.of("857000", KRW), Money.of("1962", KRW)));
     }
 
     @Test
