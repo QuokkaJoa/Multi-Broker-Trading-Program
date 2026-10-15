@@ -6,26 +6,8 @@
 조회 오류(허용 IP 차단·키 틀림 등)는 슬랙으로 알린다.
 숫자는 키움 앱과 맞는다 (원화 원 단위 — product.md 성공 기준).
 
-## 확인한 사실 (공식 문서, 2026-10-08)
-출처: 공식 GitHub 명세 https://raw.githubusercontent.com/Kiwoom-Securities/Kiwoom-REST-API/HEAD/kiwoom/_data/kiwoom_api_spec.json (사이트 API 가이드와 같은 내용, 아래 [명세]),
-https://openapi.kiwoom.com/intro/serviceInfo ([이용안내]), https://openapi.kiwoom.com/intro/mockInvestInfo ([모의]), 자주묻는질문 https://openapi.kiwoom.com/board/Board0301View ([FAQ#번호])
-- 주소: 실전 `https://api.kiwoom.com`, 모의 `https://mockapi.kiwoom.com`. 모든 TR은 `POST` + JSON. 국내 계좌 TR은 `/api/dostk/acnt` [명세]
-- 헤더: `api-id`(TR 코드), `authorization: Bearer …`. 연속 조회는 응답 헤더 `cont-yn=Y`·`next-key`를 다음 요청 헤더에 그대로 넣는다 [명세][FAQ#23]
-- 토큰: au10001 `POST /oauth2/token`, 본문 `grant_type`·`appkey`·`secretkey`. 응답 `token`, `expires_dt`(예시 `"20241107083713"`, 14자리, 시간대 명시 없음). 유효 24시간 [명세][이용안내]
-  - 발급 후 6시간 안에 다시 요청하면 같은 토큰을 준다. 6시간 뒤 요청하면 새 토큰을 주고 이전 토큰은 폐기 [FAQ#25]
-- 계좌: 요청에 계좌번호 필드가 없다. ka00001은 "현재 토큰의 계좌번호를 조회" → `acctNo` 하나(10자리, 뒤 2자리는 키움 분류값). 앱키 파일 이름도 `계좌번호_appkey.txt` → 앱키(토큰) 하나에 계좌 하나로 본다 [명세][이용안내]
-- 예수금: kt00001 (`qry_tp` 3 추정·2 일반) → `entr`(예수금), `d2_entra`(D+2 추정예수금), `ord_alow_amt`(주문가능금액) 등 [명세]
-- 보유: kt00018 (`qry_tp` 1 합산·2 개별, `dmst_stex_tp` KRX·NXT) → 목록 `acnt_evlt_remn_indv_tot`: `stk_cd`(접두어 1자리 + 6자리, A 주식·J ELW·Q ETN), `stk_nm`, `rmnd_qty`, `cur_prc`, `evlt_amt` [명세]
-  - 값은 앞을 0으로 채운 부호 포함 숫자 문자열 (`"000000000177000"`, `"-00000000196888"`)
-  - 명세 예시에 같은 종목이 두 줄로 나온다 (`crd_tp` 신용 구분으로 보임, 추정)
-- 오류: 본문 `return_code`(0 정상)·`return_msg` [명세]. 업무 오류도 HTTP 200으로 온다는 말은 공식 SDK 주석에만 있다 (명세 원문 아님)
-  - 8005 토큰 무효, 8010 토큰 발급 IP ≠ 요청 IP, 8001·8002 앱키·시크릿 실패, 1700·1701·1702 호출 한도 초과, 8030·8031 실전/모의 혼용 [명세 오류코드 표]
-- 호출 한도: TR당 토큰별 초당 5건, 모의는 초당 1건 [FAQ#41]
-- 매일 접속 끊김: 월~토 07:50~07:55, 일 05:00~05:15 (REST 안 됨, 웹소켓도 끊김) [FAQ#42]
-- 모의투자는 NXT를 지원하지 않는다. 조회도 KRX만 [모의][FAQ#27]. 모의투자에 ISA가 있는지는 문서에 없다 (`docs/brokers/kiwoom.md`: 없다고 본다)
-- ISA: 등록 가능한 계좌 종류에 "중개형ISA"가 있다 [FAQ#24]. 명세에는 ISA 언급이 없다 → 조회가 되는지는 dryrun으로 확인
-- 실전 도메인에 3개월 접속하지 않으면 서비스가 해지된다 (모의만 쓴 것도 미접속) [FAQ#19]
-- 실시간은 웹소켓 `0B`(체결)로 받을 수 있다 [명세]. 이번 단계에서는 쓰지 않는다 (아래 범위 7)
+## 확인한 사실
+`docs/brokers/kiwoom.md`로 옮겼다 (항목 2, 출처 포함). 녹화는 `src/test/resources/recordings/kiwoom/`
 
 ## 범위
 한 항목 = 대화 한 번. 위에서부터 순서대로 (0·1은 토스에 걸치므로 먼저).
@@ -36,7 +18,7 @@ https://openapi.kiwoom.com/intro/serviceInfo ([이용안내]), https://openapi.k
   - 먼저 규칙 찾기: networkTest에 "후보 시각들의 `midRate`"를 `build/network/toss/`에 저장하는 시험 추가 (후보: 전 영업일 15:30·16:00, 오늘 09:00, 미국 장 마감 05:00·06:00 KST 등). 사람이 돌린 직후 Claude가 dryrun 화면 + 토스 웹(달러 예수금의 원화 값 ÷ 달러)으로 토스가 쓴 환율을 역산해 어느 후보와 같은지 본다. 평일 낮·평일 밤·주말 중 두 번 이상
   - 규칙이 나오면 `TossExchangeRates`가 그 시각으로 조회 (시험 먼저). 규칙이 안 나오면 멈추고 묻는다
   - 화면의 "매매기준율" 문구도 규칙에 맞게 바꾼다
-- [ ] 2. 키움 문서 정리 — 위 "확인한 사실"을 `docs/brokers/kiwoom.md`에 출처와 함께 옮기고, 녹화(명세 예시 값 그대로)를 `src/test/resources/recordings/kiwoom/`에 둔다: 토큰, ka00001, kt00001, kt00018(두 줄 종목 포함), 오류(8005·8010·8001·1700)
+- [x] 2. 키움 문서 정리 — 위 "확인한 사실"을 `docs/brokers/kiwoom.md`에 출처와 함께 옮기고, 녹화(명세 예시 값 그대로)를 `src/test/resources/recordings/kiwoom/`에 둔다: 토큰, ka00001, kt00001, kt00018(두 줄 종목 포함), 오류(8005·8010·8001·1700)
 - [ ] 3. 키움 토큰·오류 — `KiwoomTokens`: 발급·`expires_dt`로 만료 1분 전까지 재사용·8005면 한 번 재발급. HTTP 200이어도 `return_code`가 0이 아니면 오류로 본다. 8010 → `IP_BLOCKED`, 8001·8002 → `BAD_KEY`, 1700~1702 → `RATE_LIMITED`, 그 밖은 `OTHER` (`BrokerException` 그대로 씀). 예외 메시지·로그에 토큰·키·계좌번호가 없음을 시험으로 확인
 - [ ] 4. 키움 어댑터 조회 — `KiwoomBroker`가 `Broker` contract 시험 통과: 계좌(ka00001 → `kiwoom-`+끝 4자리, 이름 "키움 중개형ISA"), 예수금(kt00001 → 원화 `Money` 하나, 필드는 결정 기록), 보유(kt00018 → `Holding`, 종목 코드는 접두어를 떼 6자리, 0 채움 문자열을 `BigDecimal`로, 같은 종목 여러 줄은 합친다). 연속 조회(`cont-yn`·`next-key`) 시험 포함
   - contract에 한 줄 추가: 국내 종목 코드는 접두어 없는 6자리 (토스 `005930`과 키움 `A005930`이 같은 종목으로 묶여야 실시간·화면이 맞는다)
@@ -108,6 +90,8 @@ Claude가 보여줄 것
     - ② 전 영업일 `dateTime=15:31`의 `midRate` → 10/15는 1345
     - 둘 다 아니면 멈추고 묻는다
   - 언제 바뀌는지도 본다: 10/16 00:00~09:00에 기준값이 아직 1338.6이면 09:00(서울 외환 시작)에, 이미 바뀌었으면 자정에 바뀐다
+- 2026-10-15 항목 1은 열어 두고(10/16 토스 웹 기준값을 Claude가 읽어 규칙 ①·② 가림) 항목 2로 넘어감 (사람이 정함)
+- 2026-10-15 항목 2 끝. "확인한 사실"을 `docs/brokers/kiwoom.md`로 옮김. 녹화 8개(`au10001`·`ka00001`·`kt00001`·`kt00018`, 오류 8005·8010·8001·1700)를 명세 예시 그대로 둠. 명세 예시의 빠진 쉼표(au10001·ka00001)만 고침. 오류는 명세에 예시가 없어 오류표 코드·문구로 만듦. kt00018 두 줄 종목은 둘 다 `crd_tp` "00"이라 신용 구분 추정을 지움. 10개 중 7개 남음: 1·3·4·6·7·8·9
 
 ## 결정 기록
 - 2026-10-08 (사람이 정함)

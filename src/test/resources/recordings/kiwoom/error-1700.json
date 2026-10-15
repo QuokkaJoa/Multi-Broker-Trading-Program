@@ -1,0 +1,4 @@
+{
+    "return_code": 1700,
+    "return_msg": "허용된 API 요청 개수를 초과하였습니다. 유량={?}, API ID={?}"
+}
