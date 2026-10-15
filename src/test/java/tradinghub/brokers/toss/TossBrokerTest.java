@@ -55,8 +55,8 @@ class TossBrokerTest {
     }
 
     @Test
-    void 계좌_이름은_toss와_계좌번호_끝_4자리() {
-        assertThat(broker.accounts()).containsExactly(new AccountId("toss-8901"));
+    void 계좌는_toss와_계좌번호_끝_4자리_이름은_토스_종합매매() {
+        assertThat(broker.accounts()).containsExactly(new AccountId("toss-8901", "토스 종합매매"));
     }
 
     @Test

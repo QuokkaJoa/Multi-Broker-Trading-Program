@@ -36,6 +36,35 @@ class LocalHostOnlyFilterTest {
         assertForbidden(new MockHttpServletRequest("GET", "/api/balance")); // serverName은 기본 localhost
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"http://127.0.0.1:8080", "http://localhost:8080"})
+    void 바꾸는_요청은_내_화면에서_온_것만_통과(String origin) throws Exception {
+        var request = post(origin);
+        var chain = new MockFilterChain();
+
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+        assertThat(chain.getRequest()).isNotNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"http://evil.example", "null", "http://localhost.evil.example"})
+    void 다른_사이트가_보낸_바꾸는_요청은_403(String origin) throws Exception { // Host는 127.0.0.1이라 Host만으로는 못 막는다
+        assertForbidden(post(origin));
+    }
+
+    @Test
+    void 바꾸는_요청에_Origin이_없으면_403() throws Exception {
+        assertForbidden(post(null));
+    }
+
+    private static MockHttpServletRequest post(String origin) {
+        var request = new MockHttpServletRequest("POST", "/account-names");
+        request.addHeader("Host", "127.0.0.1:8080");
+        if (origin != null) request.addHeader("Origin", origin);
+        return request;
+    }
+
     private void assertForbidden(MockHttpServletRequest request) throws Exception {
         var chain = new MockFilterChain();
         var response = new MockHttpServletResponse();

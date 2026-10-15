@@ -37,7 +37,7 @@ public final class TossBroker implements Broker {
         return accounts.stream()
                 .filter(a -> "BROKERAGE".equals(a.accountType())) // 지금은 종합매매만 지원 (명세)
                 .map(a -> {
-                    var id = new AccountId("toss-" + a.accountNo().substring(a.accountNo().length() - 4));
+                    var id = new AccountId("toss-" + a.accountNo().substring(a.accountNo().length() - 4), "토스 종합매매");
                     seqs.put(id, a.accountSeq());
                     return id;
                 })

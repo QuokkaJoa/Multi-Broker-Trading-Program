@@ -14,6 +14,11 @@ import tradinghub.brokers.PriceStream.Trade;
 import tradinghub.core.AccountId;
 import tradinghub.core.Holding;
 import tradinghub.core.Money;
+import tradinghub.service.AccountNames;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.file.Files;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -24,6 +29,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static tradinghub.core.Currency.USD;
 
 /** fake 증권사 두 곳 + 늘 IP 차단으로 실패하는 증권사 하나로 첫 화면을 그린다. */
@@ -37,7 +43,7 @@ class PageTest {
         var html = get("/");
 
         assertThat(html).contains("5,644,016원"); // 원화 총합
-        assertThat(html).contains("fake-isa-1111", "fake-toss-2222");
+        assertThat(html).contains("가짜 ISA ··1111", "가짜 종합매매 ··2222"); // 계좌 이름 + 끝 4자리
         assertThat(html).contains("1,234,567원", "$1,000.50"); // 예수금
         assertThat(html).contains("Vanguard S&amp;P 500", "1.5", "$500.50", "$750.75"); // 종목·수량·현재가·평가금
         assertThat(html).contains("1,385.20"); // 환율
@@ -75,6 +81,17 @@ class PageTest {
     }
 
     @Test
+    void 화면에서_계좌_이름을_바꾸면_다시_불러도_그_이름() throws Exception {
+        try {
+            assertThat(post("/account-names", "fake-isa-1111=" + URLEncoder.encode("노후 자금", UTF_8))).isEqualTo(303);
+
+            assertThat(get("/")).contains("노후 자금 ··1111", "가짜 종합매매 ··2222");
+        } finally {
+            post("/account-names", "fake-isa-1111=");
+        }
+    }
+
+    @Test
     void 실패한_증권사와_이유를_보여준다() throws Exception {
         assertThat(get("/")).contains("BlockedBroker", "IP 차단");
     }
@@ -97,6 +114,16 @@ class PageTest {
         }
     }
 
+    private int post(String path, String form) throws Exception {
+        try (var client = HttpClient.newHttpClient()) {
+            var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .header("Origin", "http://127.0.0.1:" + port)
+                    .POST(HttpRequest.BodyPublishers.ofString(form)).build();
+            return client.send(request, HttpResponse.BodyHandlers.discarding()).statusCode();
+        }
+    }
+
     @Autowired HandStream prices;
 
     @TestConfiguration
@@ -106,6 +133,13 @@ class PageTest {
         @Primary
         HandStream handStream() {
             return new HandStream();
+        }
+
+        /** 진짜 이름 파일(프로젝트 폴더)을 건드리지 않게 임시 파일로. */
+        @Bean
+        @Primary
+        AccountNames tempNames() throws IOException {
+            return new AccountNames(Files.createTempDirectory("names").resolve("account-names.properties"));
         }
 
         @Bean
