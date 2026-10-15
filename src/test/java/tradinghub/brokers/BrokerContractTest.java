@@ -41,7 +41,7 @@ public abstract class BrokerContractTest {
 
     @Test
     void 모르는_계좌는_예외() {
-        var unknown = new AccountId("unknown-0000");
+        var unknown = new AccountId("unknown-0000", "모르는 계좌");
         assertThatThrownBy(() -> broker().cash(unknown)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> broker().holdings(unknown)).isInstanceOf(IllegalArgumentException.class);
     }

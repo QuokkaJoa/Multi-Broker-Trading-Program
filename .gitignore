@@ -5,3 +5,4 @@ build/
 *.iml
 .claude/settings.local.json
 .env
+account-names.properties

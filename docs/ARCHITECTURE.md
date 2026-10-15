@@ -23,6 +23,7 @@ fake → mock → dryrun 순으로 실제에 가까워진다. Claude는 fake만 
 ## 웹
 - `server.address=127.0.0.1`. Spring 기본값은 모든 네트워크라서 반드시 적는다
 - Host 헤더가 127.0.0.1·localhost가 아니면 거부한다 (다른 웹사이트가 내 잔고를 읽는 DNS rebinding 방지)
+- GET·HEAD 말고 바꾸는 요청(계좌 이름 저장 등)은 Origin도 127.0.0.1·localhost여야 한다 (다른 사이트의 폼 보내기, CSRF 방지)
 
 ## 시험
 - contract: 모든 어댑터가 같은 시험을 통과한다 (fake 포함)

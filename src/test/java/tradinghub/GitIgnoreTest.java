@@ -14,4 +14,9 @@ class GitIgnoreTest {
     void env_파일은_git에서_빠진다() throws Exception {
         assertThat(Files.readAllLines(Path.of(".gitignore"))).contains(".env");
     }
+
+    @Test
+    void 계좌_이름_파일도_git에서_빠진다() throws Exception { // 끝 4자리가 들어 있다
+        assertThat(Files.readAllLines(Path.of(".gitignore"))).contains("account-names.properties");
+    }
 }
