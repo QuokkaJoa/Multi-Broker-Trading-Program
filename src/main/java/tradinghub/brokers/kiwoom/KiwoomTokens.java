@@ -44,20 +44,33 @@ public final class KiwoomTokens {
         this.clock = clock;
     }
 
-    /** 국내 계좌 TR(apiId)을 부른다. 8005(토큰 무효)면 한 번만 다시 발급해서 다시 부른다. 연속 조회용 응답 헤더도 돌려준다. */
     public ResponseEntity<JsonNode> post(String apiId, Object body) {
+        return post(apiId, body, null);
+    }
+
+    /**
+     * 국내 계좌 TR(apiId)을 부른다. 8005(토큰 무효)면 한 번만 다시 발급해서 다시 부른다. 연속 조회용 응답 헤더도 돌려준다.
+     * nextKey가 있으면 연속 조회 (앞 응답 헤더의 next-key를 cont-yn=Y와 함께 넣는다).
+     */
+    public ResponseEntity<JsonNode> post(String apiId, Object body, String nextKey) {
         String used = current();
-        var response = send(apiId, body, used);
+        var response = send(apiId, body, nextKey, used);
         if (returnCode(response) == INVALID_TOKEN) {
-            response = send(apiId, body, renew(used));
+            response = send(apiId, body, nextKey, renew(used));
         }
         return checked(response);
     }
 
-    private ResponseEntity<JsonNode> send(String apiId, Object body, String token) {
+    private ResponseEntity<JsonNode> send(String apiId, Object body, String nextKey, String token) {
         return client.post().uri(ACCOUNT_URI)
                 .header("api-id", apiId)
                 .header("authorization", "Bearer " + token)
+                .headers(h -> {
+                    if (nextKey != null) {
+                        h.add("cont-yn", "Y");
+                        h.add("next-key", nextKey);
+                    }
+                })
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .exchange(KiwoomTokens::entity);
