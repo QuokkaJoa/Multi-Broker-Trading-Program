@@ -1,0 +1,4 @@
+{
+    "return_code": 8001,
+    "return_msg": "App Key와 Secret Key 검증에 실패했습니다"
+}

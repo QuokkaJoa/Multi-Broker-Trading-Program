@@ -1,0 +1,4 @@
+{
+    "return_code": 8010,
+    "return_msg": "Token을 발급받은 IP와 서비스를 요청한 IP가 동일하지 않습니다"
+}
