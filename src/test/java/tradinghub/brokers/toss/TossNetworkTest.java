@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -19,6 +20,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.InstantSource;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -36,6 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TossNetworkTest {
 
     private static final Path SAVE = Path.of("build/network/toss");
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 
     RestClient client = TossConfig.CLIENT;
     TossTokens tokens = new TossTokens(client, new EnvFileSecretStore(Path.of(".env")), InstantSource.system());
@@ -75,6 +83,50 @@ class TossNetworkTest {
     @Test
     void 환율() throws IOException {
         same("exchange-rate.json", get("/api/v1/exchange-rate?baseCurrency=USD&quoteCurrency=KRW", null));
+    }
+
+    /**
+     * 2단계 항목 1: 토스 자산 화면이 어느 시각의 환율로 달러를 환산하는지 찾으려고 후보 시각들의 환율을 저장한다.
+     * 지난 4일 1시간 간격 + 시장 시각(02:00 서울 외환 마감, 05:00·06:00 미국 장 마감, 09:00 서울 외환 시작, 15:30·16:00).
+     * 같은지 비교는 Claude가 저장 파일과 토스 웹으로 한다. 환율은 공개 값이라 계좌 정보가 없다.
+     */
+    @Test
+    void 후보_시각들의_환율() throws Exception {
+        ZonedDateTime now = ZonedDateTime.now(KST).truncatedTo(ChronoUnit.MINUTES);
+        var times = new TreeSet<ZonedDateTime>();
+        times.add(now);
+        for (int h = 1; h <= 96; h++) times.add(now.truncatedTo(ChronoUnit.HOURS).minusHours(h));
+        for (int d = 0; d <= 4; d++) {
+            for (String t : List.of("02:00", "05:00", "06:00", "09:00", "15:30", "16:00")) {
+                var at = now.toLocalDate().minusDays(d).atTime(LocalTime.parse(t)).atZone(KST);
+                if (at.isBefore(now)) times.add(at);
+            }
+        }
+
+        var mapper = new ObjectMapper();
+        var items = mapper.createArrayNode();
+        int found = 0;
+        for (ZonedDateTime at : times.descendingSet()) {
+            Thread.sleep(400); // MARKET_INFO 초당 3회
+            var item = items.addObject().put("at", at.toOffsetDateTime().toString());
+            try {
+                // {at} 자리 값은 +까지 인코딩된다 (그냥 붙이면 서버가 +를 공백으로 읽는다)
+                String body = tokens.withToken(token -> client.get()
+                        .uri("/api/v1/exchange-rate?baseCurrency=USD&quoteCurrency=KRW&dateTime={at}", at.toOffsetDateTime().toString())
+                        .header("Authorization", "Bearer " + token)
+                        .retrieve().body(String.class));
+                JsonNode r = mapper.readTree(body).path("result");
+                item.put("midRate", r.path("midRate").asString()).put("rate", r.path("rate").asString())
+                        .put("validFrom", r.path("validFrom").asString());
+                found++;
+            } catch (HttpClientErrorException.NotFound e) {
+                item.put("error", "exchange-rate-not-found");
+            }
+        }
+        var out = mapper.createObjectNode().put("ranAt", ZonedDateTime.now(KST).toOffsetDateTime().toString());
+        out.set("items", items);
+        Files.writeString(SAVE.resolve("rate-candidates.json"), mapper.writerWithDefaultPrettyPrinter().writeValueAsString(out));
+        assertThat(found).as("과거 시각 환율이 하나는 와야 한다").isPositive();
     }
 
     /** 보유 종목 하나(달러 종목 먼저)를 구독해 ack와 체결 프레임 모양을 본다. 체결이 와야 하므로 그 시장이 열려 있을 때 돌린다. */
