@@ -90,6 +90,7 @@ public class LiveBalanceService {
         Money price = t.price();
         var value = h.quantity().multiply(price.amount())
                 .setScale(price.currency() == KRW ? 0 : 2, RoundingMode.HALF_UP);
-        return new Holding(h.symbol(), h.name(), h.quantity(), price, new Money(value, price.currency()));
+        // 비용은 스냅샷 값 그대로 (다음 스냅샷에서 증권사 값으로 맞춘다)
+        return new Holding(h.symbol(), h.name(), h.quantity(), price, new Money(value, price.currency()), h.costs());
     }
 }

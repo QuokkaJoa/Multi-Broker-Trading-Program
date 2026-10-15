@@ -18,8 +18,11 @@ public record FakeBroker(AccountId account, List<Money> cash, List<Holding> hold
     public static FakeBroker krwOnly() {
         return new FakeBroker(new AccountId("fake-isa-1111", "가짜 ISA"),
                 List.of(Money.of("1234567", KRW)),
-                List.of(new Holding("069500", "KODEX 200", new BigDecimal("10"), Money.of("38000", KRW), Money.of("380000", KRW)),
-                        new Holding("005930", "삼성전자", new BigDecimal("5"), Money.of("60000", KRW), Money.of("300000", KRW))));
+                // 키움처럼 예상 수수료·세금을 준다 (앱 기준 평가금 줄을 fake 화면에서 보려고)
+                List.of(new Holding("069500", "KODEX 200", new BigDecimal("10"), Money.of("38000", KRW), Money.of("380000", KRW),
+                                Money.of("1140", KRW)),
+                        new Holding("005930", "삼성전자", new BigDecimal("5"), Money.of("60000", KRW), Money.of("300000", KRW),
+                                Money.of("900", KRW))));
     }
 
     /** 원화와 달러가 섞인 계좌 (토스 종합매매 흉내). */

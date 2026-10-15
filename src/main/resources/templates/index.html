@@ -57,6 +57,10 @@
       <th:block th:each="t, s : ${a.totals.values()}"><th:block th:replace="~{money :: money(${t})}"/><th:block th:unless="${s.last}"> · </th:block></th:block>
       <span class="muted">(예수금 + 평가금)</span>
     </p>
+    <p class="muted" th:if="${a.krwCosts().amount().signum() > 0}">
+      앱 기준 평가금 <th:block th:replace="~{money :: money(${a.krwValueAfterCosts()})}"/>
+      (원화 평가금 − 예상 수수료·세금 <th:block th:replace="~{money :: money(${a.krwCosts()})}"/>)
+    </p>
     <table>
       <thead><tr><th>종목</th><th>수량</th><th>현재가</th><th>평가금</th><th>통화</th></tr></thead>
       <tbody>

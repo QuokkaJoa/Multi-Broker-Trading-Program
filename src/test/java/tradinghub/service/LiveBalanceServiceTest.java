@@ -72,6 +72,17 @@ class LiveBalanceServiceTest {
     }
 
     @Test
+    void 체결가로_바꿔도_예상_수수료_세금은_스냅샷_값을_쓴다() {
+        live.current();
+        prices.trade("005930", Money.of("60100", KRW), T0);
+
+        var isa = live.current().balance().accounts().getFirst();
+
+        assertThat(isa.krwCosts()).isEqualTo(Money.of("2040", KRW));
+        assertThat(isa.krwValueAfterCosts()).isEqualTo(Money.of("678460", KRW)); // 380,000 + 300,500 − 2,040
+    }
+
+    @Test
     void 통화가_다른_체결은_쓰지_않는다() {
         live.current();
         prices.trade("AAPL", Money.of("300000", KRW), T0);
