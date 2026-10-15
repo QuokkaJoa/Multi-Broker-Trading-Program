@@ -7,7 +7,8 @@
 web → service → brokers → core
 - core: 계좌·보유·통화(KRW/USD)·금액. 다른 층을 모른다
 - brokers: `Broker` 약속 + 증권사별 어댑터(toss, kiwoom) + fake. 인증·토큰·호출 한도·허용 IP 오류·응답 모양 차이는 여기서 끝난다. 환율(`ExchangeRates`)과 실시간 체결가(`PriceStream`)도 여기서 받는다 (`Broker`와 따로 둔 약속)
-- service: 통합 잔고(원화 합산), 알림
+- service: 통합 잔고(원화 합산), 계좌 이름(사람이 화면에서 바꾼 이름, git 제외 파일), 알림 약속(`Notifier`)과 조회 오류 알림(`FailureAlerts`, 10분마다)
+- slack: `Notifier` 구현. dryrun은 슬랙 웹훅(`SlackNotifier`), 그 밖은 로그(`LogNotifier`). 증권사가 아니라 brokers 밖에 둔다
 - web: 화면. 계산·판단 없이 service 결과를 보여주기만 한다
 
 ## 어기면 안 되는 경계 (구조 시험이 검사)
