@@ -2,6 +2,7 @@ package tradinghub.brokers;
 
 import org.junit.jupiter.api.Test;
 import tradinghub.core.AccountId;
+import tradinghub.core.Currency;
 import tradinghub.core.Holding;
 import tradinghub.core.Money;
 
@@ -35,6 +36,16 @@ public abstract class BrokerContractTest {
                 assertThat(h.symbol()).isNotBlank();
                 assertThat(h.quantity()).isPositive();
                 assertThat(h.marketValue().amount()).isPositive();
+            }
+        }
+    }
+
+    /** 토스 005930과 키움 A005930이 같은 종목으로 묶여야 실시간 체결이 두 계좌에 같이 적용된다 (2단계 계획서). 새 KRX 코드는 영문이 섞인다 (0091C0 등). */
+    @Test
+    void 국내_종목_코드는_접두어_없는_6자리다() {
+        for (AccountId id : broker().accounts()) {
+            for (Holding h : broker().holdings(id)) {
+                if (h.price().currency() == Currency.KRW) assertThat(h.symbol()).matches("[0-9A-Z]{6}");
             }
         }
     }
