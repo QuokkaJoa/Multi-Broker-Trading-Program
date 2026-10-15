@@ -87,7 +87,8 @@ class TossNetworkTest {
 
     /**
      * 2단계 항목 1: 토스 자산 화면이 어느 시각의 환율로 달러를 환산하는지 찾으려고 후보 시각들의 환율을 저장한다.
-     * 지난 4일 1시간 간격 + 시장 시각(02:00 서울 외환 마감, 05:00·06:00 미국 장 마감, 09:00 서울 외환 시작, 15:30·16:00).
+     * 지난 4일 1시간 간격 + 시장 시각(02:00 서울 외환 마감, 05:00·06:00 미국 장 마감, 09:00 서울 외환 시작, 15:30·16:00)
+     * + 날마다 15:00~16:00 1분 간격. 약 400번 조회라 3분쯤 걸린다.
      * 같은지 비교는 Claude가 저장 파일과 토스 웹으로 한다. 환율은 공개 값이라 계좌 정보가 없다.
      */
     @Test
@@ -99,6 +100,11 @@ class TossNetworkTest {
         for (int d = 0; d <= 4; d++) {
             for (String t : List.of("02:00", "05:00", "06:00", "09:00", "15:30", "16:00")) {
                 var at = now.toLocalDate().minusDays(d).atTime(LocalTime.parse(t)).atZone(KST);
+                if (at.isBefore(now)) times.add(at);
+            }
+            // 10/15 첫 표본: 토스 전일 기준값이 전날 15:00~15:30 사이 값으로 보여 1분 단위로 본다
+            for (int m = 0; m <= 60; m++) {
+                var at = now.toLocalDate().minusDays(d).atTime(15, 0).plusMinutes(m).atZone(KST);
                 if (at.isBefore(now)) times.add(at);
             }
         }
