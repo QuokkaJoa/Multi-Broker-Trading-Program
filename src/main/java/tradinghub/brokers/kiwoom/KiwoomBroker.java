@@ -28,11 +28,11 @@ public final class KiwoomBroker implements Broker {
         this.tokens = tokens;
     }
 
-    /** 끝 4자리는 acctNo 10자리의 끝 4자리. 뒤 2자리가 키움 분류값이라 앱 번호와 다르면 항목 6 dryrun에서 고친다 (계획서). */
+    /** acctNo 10자리 중 뒤 2자리는 키움 분류값이고, 앱에 보이는 번호는 앞 8자리다 (10/15 dryrun에서 앱과 비교). 그 끝 4자리를 쓴다. */
     @Override
     public List<AccountId> accounts() {
         String no = tokens.post("ka00001", Map.of()).getBody().path("acctNo").asString();
-        account = new AccountId("kiwoom-" + no.substring(no.length() - 4), "키움 중개형ISA");
+        account = new AccountId("kiwoom-" + no.substring(no.length() - 6, no.length() - 2), "키움 중개형ISA");
         return List.of(account);
     }
 
